@@ -34,7 +34,7 @@ export default function ProjectorScreen() {
   const derivedTotalScore = activeTeamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
   const maxPossibleScore = activeTeamScores.length > 0 ? activeTeamScores.length * 50 : 50;
 
-  if (!isLoaded || !globalState) return <div className={styles.loading}>جاري التحميل...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.projectorContainer}><div className={styles.loading}>جاري تجهيز شاشة العرض...</div></div>;
 
   const renderTimer = () => {
     if (!isTimerRunning && !isBreak) return null;

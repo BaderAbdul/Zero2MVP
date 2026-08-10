@@ -62,7 +62,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
             onClick={handleApproveCheckpoint}
             className={styles.approveButton}
           >
-            قبول نقطة التحقق (Approve)
+            قبول نقطة التحقق
           </button>
         )}
         
@@ -71,7 +71,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
             <p className={styles.interventionsLabel}>🚨 طلب مساعدة</p>
             {openInterventions.map(i => (
               <button key={i.id} onClick={() => handleClaim(i.id)} className={styles.claimBtn}>
-                استلام الطلب (Claim)
+                استلام الطلب
               </button>
             ))}
           </div>
@@ -82,7 +82,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
             <p className={styles.interventionsLabel}>🛠️ أنت تساعد هذا الفريق</p>
             {claimedInterventions.map(i => (
               <button key={i.id} onClick={() => handleResolve(i.id)} className={styles.resolveBtn}>
-                تحديد كـ محلول (Resolve)
+                تم الحل
               </button>
             ))}
           </div>
@@ -112,13 +112,16 @@ export default function MentorDashboard() {
     return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ المُرشِد عبر <a href="/login">/login</a>.</div>;
   }
 
+  // Mentor doesn't use isLoaded in current setup but we can add a check if teams is empty as proxy or just rely on teams.
+
+
   const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
   const monitoringTeams = teams.filter(t => t.checkpointStatus !== 'pending' && t.healthStatus === 'green');
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>مركز تدخل الفرق — Intervention Center</h1>
+        <h1>مركز تدخل الفرق</h1>
       </header>
 
       <div className={styles.triageLayout}>

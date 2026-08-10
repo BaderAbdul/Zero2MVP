@@ -31,12 +31,12 @@ export default function JudgeExperience() {
     return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ محكّم عبر <a href="/login">/login</a>.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.container}>جاري التحميل...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.container}>جاري تجهيز التقييم...</div>;
 
   if (currentRoSPhase.type !== 'demo_day') {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
-        <h1>يوم العروض لم يبدأ بعد.</h1>
+        <h1>يوم العروض لم يبدأ بعد</h1>
         <p>الرجاء الانتظار حتى يقوم المنظّم ببدء الفعالية.</p>
       </div>
     </div>;
@@ -45,7 +45,7 @@ export default function JudgeExperience() {
   if (!activeTeam) {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
-        <h1>في انتظار الفريق التالي...</h1>
+        <h1>بانتظار الفريق التالي</h1>
         <p>انظر إلى شاشة العرض لمعرفة الترتيب الحالي.</p>
       </div>
     </div>;
@@ -68,8 +68,8 @@ export default function JudgeExperience() {
     return (
       <div className={styles.container}>
         <div className={styles.successBox}>
-          <h1>تم إرسال التقييم! ✅</h1>
-          <p>في انتظار قيام المنظّم بالتبديل إلى الفريق التالي.</p>
+          <h1>تم إرسال التقييم</h1>
+          <p>لا حاجة لأي إجراء آخر.</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function JudgeExperience() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.label}>ورقة التقييم — SCORING SHEET</p>
+        <p className={styles.label}>ورقة التقييم</p>
         <h1 className={styles.teamName}>{activeTeam.name}</h1>
         <p className={styles.idea}>"{activeTeam.projectIdea}"</p>
       </header>

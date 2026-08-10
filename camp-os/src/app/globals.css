@@ -1,33 +1,32 @@
 :root {
-  /* Dark Mode Palette */
-  --bg-main: #0B0F19;       /* Deep slate/blue-black */
-  --bg-card: rgba(255, 255, 255, 0.03); /* Glassmorphism base */
-  --bg-card-hover: rgba(255, 255, 255, 0.06);
-  --border-glass: rgba(255, 255, 255, 0.1);
-  --border-glass-strong: rgba(255, 255, 255, 0.2);
+  /* Surface Colors (Premium, Calm, Technical) */
+  --bg-main: #09090b;       /* Zinc 950 */
+  --bg-elevated: #18181b;   /* Zinc 900 */
+  --bg-card: #18181b;       /* Zinc 900 */
+  --bg-card-hover: #27272a; /* Zinc 800 */
+  
+  /* Borders */
+  --border-subtle: #27272a; /* Zinc 800 */
+  --border-strong: #3f3f46; /* Zinc 700 */
+  --border-focus: #3b82f6;  /* Blue 500 */
 
   /* Typography Colors */
-  --text-main: #F8FAFC;     /* Off-white */
-  --text-muted: #94A3B8;    /* Slate-400 */
-  --text-inverse: #0B0F19;
+  --text-main: #fafafa;     /* Zinc 50 */
+  --text-secondary: #a1a1aa;/* Zinc 400 */
+  --text-muted: #71717a;    /* Zinc 500 */
+  --text-inverse: #09090b;
 
-  /* Brand Accents (Neon) */
-  --accent-blue: #3B82F6;
-  --accent-blue-glow: rgba(59, 130, 246, 0.5);
-  
-  --accent-green: #10B981;
-  --accent-green-glow: rgba(16, 185, 129, 0.5);
-  
-  --accent-amber: #F59E0B;
-  --accent-amber-glow: rgba(245, 158, 11, 0.5);
-
-  --accent-red: #EF4444;
-  --accent-red-glow: rgba(239, 68, 68, 0.5);
+  /* Semantic Colors */
+  --color-accent: #3b82f6;      /* Blue */
+  --color-success: #10b981;     /* Emerald */
+  --color-warning: #f59e0b;     /* Amber */
+  --color-danger: #ef4444;      /* Red */
+  --color-disabled: #52525b;    /* Zinc 600 */
 
   /* Layout & Spacing */
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
   --radius-pill: 9999px;
 }
 
@@ -52,7 +51,7 @@ html, body {
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: normal;
 }
 
 a {

@@ -18,7 +18,7 @@ export default function ParticipantDashboard() {
     return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ مشارك عبر <a href="/login">/login</a>.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.loading}>جاري التحميل...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.loading}>جاري تجهيز مهمتك...</div>;
 
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,8 +126,8 @@ export default function ParticipantDashboard() {
       } else {
         return (
           <div className={styles.missionCenter}>
-            <h2 className={styles.missionTitle}>يوم العروض — Demo Day</h2>
-            <p className={styles.missionDesc}>تابع شاشة العرض (Projector) وشجّع زملائك.</p>
+            <h2 className={styles.missionTitle}>يوم العروض</h2>
+            <p className={styles.missionDesc}>تابع شاشة العرض وشجّع زملائك.</p>
           </div>
         );
       }
@@ -136,7 +136,7 @@ export default function ParticipantDashboard() {
     if (currentRoSPhase.id === 'checkpoint') {
       return (
         <div className={styles.missionCenter}>
-          <h2 className={styles.missionTitle}>نقطة التحقق — Checkpoint 🚨</h2>
+          <h2 className={styles.missionTitle}>نقطة التحقق 🚨</h2>
           {team.checkpointStatus === 'idle' ? (
             <div className={styles.missionActive}>
               <p className={styles.missionDesc}>يجب عليك إرسال عملك للمراجعة الآن.</p>

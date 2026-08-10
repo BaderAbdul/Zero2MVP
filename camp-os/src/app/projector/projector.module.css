@@ -1,9 +1,8 @@
 .projectorContainer {
   width: 100vw;
   height: 100vh;
-  background-color: #050505;
-  color: #fff;
-  font-family: var(--font-inter), system-ui, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
   overflow: hidden;
   display: flex;
   justify-content: center;
@@ -16,40 +15,33 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 2rem;
+  gap: 2.5rem;
   width: 100%;
   padding: 4rem;
 }
 
 .glitchText {
   font-size: 8rem;
-  font-weight: 900;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.05em;
-  background: linear-gradient(135deg, #fff, #888);
+  letter-spacing: normal;
+  background: linear-gradient(135deg, #fff, var(--text-secondary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 50px rgba(255, 255, 255, 0.2);
 }
 
 .fireText {
   font-size: 8rem;
-  font-weight: 900;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.05em;
-  background: linear-gradient(135deg, #f59e0b, #ef4444);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 0 0 80px rgba(239, 68, 68, 0.4);
+  color: var(--color-warning);
 }
 
 .alertText {
   font-size: 8rem;
-  font-weight: 900;
+  font-weight: 800;
   margin: 0;
-  letter-spacing: -0.05em;
-  color: var(--accent-red);
-  text-shadow: 0 0 50px var(--accent-red-glow);
+  color: var(--color-danger);
   animation: flash 1s infinite alternate;
 }
 
@@ -59,23 +51,21 @@
 }
 
 .subtitle {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.2em;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .announcementBox {
   margin-top: 4rem;
-  padding: 2rem 4rem;
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid var(--accent-blue);
+  padding: 2.5rem 5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-lg);
-  font-size: 2rem;
-  font-weight: bold;
-  color: #fff;
-  box-shadow: 0 0 30px var(--accent-blue-glow);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-main);
 }
 
 /* BUILD SCREEN */
@@ -84,8 +74,8 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 4rem;
-  gap: 3rem;
+  padding: 5rem;
+  gap: 4rem;
 }
 
 .buildHeader {
@@ -94,197 +84,200 @@
   align-items: center;
 }
 
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 4rem;
+}
+
 .phaseTitle {
-  font-size: 4rem;
-  font-weight: 900;
+  font-size: 4.5rem;
+  font-weight: 800;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
+  color: var(--text-main);
 }
 
 .liveDot {
-  width: 24px;
-  height: 24px;
-  background: var(--accent-red);
+  width: 32px;
+  height: 32px;
+  background: var(--color-danger);
   border-radius: 50%;
-  box-shadow: 0 0 20px var(--accent-red);
   animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  0% { transform: scale(0.95); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.8; }
 }
 
 .announcementBoxAlt {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid var(--accent-blue);
-  padding: 1.5rem 3rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  padding: 2rem 4rem;
   border-radius: var(--radius-pill);
-  font-size: 1.5rem;
-  font-weight: bold;
+  font-size: 2rem;
+  font-weight: 700;
 }
 
 .podiumContainer {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.5rem;
   justify-content: center;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
 }
 
 .podiumRow {
   display: grid;
-  grid-template-columns: 80px 300px 1fr 100px;
+  grid-template-columns: 100px 350px 1fr 150px;
   align-items: center;
-  gap: 2rem;
-  background: rgba(255,255,255,0.03);
-  padding: 1.5rem 2rem;
+  gap: 3rem;
+  background: var(--bg-card);
+  padding: 2rem 3rem;
   border-radius: var(--radius-lg);
-  border: 1px solid var(--border-glass);
+  border: 1px solid var(--border-subtle);
 }
 
 .podiumFirst {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: var(--accent-blue);
-  box-shadow: 0 0 30px var(--accent-blue-glow);
+  background: var(--bg-elevated);
+  border-color: var(--color-accent);
   transform: scale(1.02);
   z-index: 10;
 }
 
 .podiumRank {
-  font-size: 2rem;
-  font-weight: 900;
+  font-size: 2.5rem;
+  font-weight: 800;
   color: var(--text-muted);
 }
 
 .podiumFirst .podiumRank {
-  color: var(--accent-blue);
+  color: var(--color-accent);
 }
 
 .podiumName {
-  font-size: 2rem;
-  font-weight: bold;
+  font-size: 2.5rem;
+  font-weight: 700;
 }
 
 .podiumBarContainer {
-  height: 16px;
-  background: rgba(0,0,0,0.5);
-  border-radius: 8px;
+  height: 24px;
+  background: var(--bg-main);
+  border-radius: 12px;
   overflow: hidden;
+  border: 1px solid var(--border-strong);
 }
 
 .podiumBarFill {
   height: 100%;
-  background: var(--text-muted);
+  background: var(--text-secondary);
 }
 
 .podiumFirst .podiumBarFill {
-  background: var(--accent-blue);
-  box-shadow: 0 0 15px var(--accent-blue);
+  background: var(--color-accent);
 }
 
 .podiumScore {
-  font-size: 2rem;
-  font-weight: 900;
+  font-size: 2.5rem;
+  font-weight: 800;
   text-align: end;
+  color: var(--text-main);
 }
 
 /* CHECKPOINT */
 .checkpointGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
+  gap: 2rem;
   justify-content: center;
-  max-width: 1200px;
-  margin-top: 4rem;
+  max-width: 1400px;
+  margin-top: 5rem;
 }
 
 .checkpointPill {
-  font-size: 2rem;
-  font-weight: bold;
-  padding: 1.5rem 3rem;
+  font-size: 2.5rem;
+  font-weight: 700;
+  padding: 2rem 4rem;
   border-radius: var(--radius-pill);
-  background: rgba(255,255,255,0.05);
-  border: 2px solid var(--border-glass-strong);
+  background: var(--bg-elevated);
+  border: 2px solid var(--border-strong);
 }
 
 .pending {
   background: rgba(245, 158, 11, 0.1);
-  border-color: var(--accent-amber);
-  color: var(--accent-amber);
+  border-color: var(--color-warning);
+  color: var(--color-warning);
 }
 
 .approved {
   background: rgba(16, 185, 129, 0.1);
-  border-color: var(--accent-green);
-  color: var(--accent-green);
+  border-color: var(--color-success);
+  color: var(--color-success);
 }
 
 /* DEMO DAY ACTIVE */
 .activeTeamBox {
-  margin-top: 4rem;
-  background: rgba(0,0,0,0.5);
-  padding: 5rem;
-  border-radius: 2rem;
-  border: 1px solid var(--border-glass-strong);
-  backdrop-filter: blur(20px);
+  margin-top: 5rem;
+  background: var(--bg-elevated);
+  padding: 6rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
   width: 100%;
-  max-width: 1400px;
+  max-width: 1600px;
 }
 
 .upNext {
-  color: var(--accent-amber);
-  font-size: 2rem;
-  letter-spacing: 0.2em;
-  margin-bottom: 2rem;
+  color: var(--color-warning);
+  font-size: 2.5rem;
+  margin-bottom: 3rem;
+  font-weight: 700;
 }
 
 .massiveTeamName {
-  font-size: 6rem;
-  font-weight: 900;
+  font-size: 8rem;
+  font-weight: 800;
   margin: 0 0 2rem 0;
+  color: var(--text-main);
+  line-height: 1.1;
 }
 
 .projectIdea {
-  font-size: 2.5rem;
-  color: var(--text-muted);
-  font-style: italic;
+  font-size: 3rem;
+  color: var(--text-secondary);
+  font-weight: 500;
 }
 
 .massiveScore {
-  margin-top: 4rem;
-  font-size: 12rem;
-  font-weight: 900;
-  color: var(--accent-green);
-  text-shadow: 0 0 100px var(--accent-green);
-}
-
-.headerTitleRow {
-  display: flex;
-  align-items: center;
-  gap: 3rem;
+  margin-top: 5rem;
+  font-size: 14rem;
+  font-weight: 800;
+  color: var(--color-success);
 }
 
 .projectorTimer {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-glass-strong);
-  padding: 0.5rem 1.5rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  padding: 1rem 2.5rem;
   border-radius: var(--radius-md);
-  font-size: 3.5rem;
-  font-weight: bold;
+  font-size: 4.5rem;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: var(--accent-blue);
-  box-shadow: 0 0 30px var(--accent-blue-glow);
+  color: var(--color-accent);
 }
 
 .timerWarning {
-  color: var(--danger, #ef4444);
-  box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+  color: var(--color-danger);
   animation: pulseHuge 1s infinite alternate;
+}
+
+.loading {
+  font-size: 3rem;
+  color: var(--text-secondary);
 }
