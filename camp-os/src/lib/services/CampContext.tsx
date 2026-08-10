@@ -20,7 +20,7 @@ export const CampProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   
-  const isFirebase = process.env.NEXT_PUBLIC_DATA_PROVIDER === 'firebase';
+  const isFirebase = process.env.NEXT_PUBLIC_DATA_PROVIDER !== 'mock';
   const activeProvider = isFirebase ? firebaseProvider : mockProvider;
 
   useEffect(() => {
@@ -37,42 +37,56 @@ export const CampProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Firebase Auth Flow
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userRef = doc(db, 'users', firebaseUser.uid);
-        let userDoc = await getDoc(userRef);
-        
-        if (!userDoc.exists()) {
-          // New User: Check allowlist or default to participant
-          let assignedRole = 'participant';
-          if (firebaseUser.email) {
-            const allowlistDoc = await getDoc(doc(db, 'staff_allowlist', firebaseUser.email));
-            if (allowlistDoc.exists()) {
-              assignedRole = allowlistDoc.data().role;
-            }
+      try {
+        if (firebaseUser) {
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          let userDoc;
+          try {
+            userDoc = await getDoc(userRef);
+          } catch (err) {
+            console.error('Error fetching userDoc:', err);
           }
           
-          await setDoc(userRef, {
-            name: firebaseUser.displayName || firebaseUser.email || 'Participant',
-            role: assignedRole,
-            teamId: null
-          });
-          
-          userDoc = await getDoc(userRef); // Refetch to be safe
-        }
+          if (!userDoc || !userDoc.exists()) {
+            let assignedRole = 'participant';
+            if (firebaseUser.email) {
+              try {
+                const allowlistDoc = await getDoc(doc(db, 'staff_allowlist', firebaseUser.email.toLowerCase()));
+                if (allowlistDoc && allowlistDoc.exists()) {
+                  assignedRole = allowlistDoc.data().role;
+                }
+              } catch (e) {
+                console.warn('Allowlist fetch warning:', e);
+              }
+            }
+            
+            try {
+              await setDoc(userRef, {
+                name: firebaseUser.displayName || firebaseUser.email || 'Participant',
+                role: assignedRole,
+                teamId: null
+              });
+              userDoc = await getDoc(userRef);
+            } catch (e) {
+              console.error('Error setting user profile:', e);
+            }
+          }
 
-        const data = userDoc.data();
-        if (data) {
+          const data = userDoc?.exists() ? userDoc.data() : null;
           setCurrentUser({
             id: firebaseUser.uid,
-            name: data.name || 'User',
-            role: data.role || 'participant',
-            teamId: data.teamId
+            name: data?.name || firebaseUser.displayName || firebaseUser.email || 'User',
+            role: data?.role || 'participant',
+            teamId: data?.teamId || null
           });
+        } else {
+          setCurrentUser(null);
         }
-      } else {
-        setCurrentUser(null);
+      } catch (globalAuthErr) {
+        console.error('Global auth listener error:', globalAuthErr);
+      } finally {
+        setAuthLoading(false);
       }
-      setAuthLoading(false);
     });
 
     return unsubscribe;

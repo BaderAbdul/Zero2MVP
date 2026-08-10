@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useCampContext } from '@/lib/services/CampContext';
 import { auth, googleProvider } from '@/lib/services/firebase';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
 
@@ -15,6 +15,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (currentUser) {
+      setIsLoading(false);
       if (currentUser.role === 'organizer') router.push('/organizer');
       else if (currentUser.role === 'mentor') router.push('/mentor');
       else if (currentUser.role === 'judge') router.push('/judge');
@@ -28,7 +29,16 @@ export default function LoginPage() {
       setLoginError('');
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
-      console.error('Firebase auth error:', err);
+      console.error('Firebase auth popup error:', err);
+      // Fallback for mobile browsers or popup blockers
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectErr: any) {
+          console.error('Firebase auth redirect error:', redirectErr);
+        }
+      }
       setLoginError('تعذر تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       setIsLoading(false);
     }
@@ -36,6 +46,17 @@ export default function LoginPage() {
 
   const handleLogout = async () => {
     await signOut(auth);
+    setIsLoading(false);
+  };
+
+  const translateRole = (role?: string) => {
+    switch (role) {
+      case 'organizer': return 'منظّم';
+      case 'mentor': return 'مُرشِد';
+      case 'judge': return 'محكّم';
+      case 'participant': return 'مشارك';
+      default: return role || 'مشارك';
+    }
   };
 
   return (
@@ -63,9 +84,17 @@ export default function LoginPage() {
             {loginError && <p className={styles.errorMsg}>{loginError}</p>}
           </>
         ) : (
-          <button onClick={handleLogout} className={styles.logoutBtn}>
-            تسجيل الخروج
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
+            <p style={{ color: 'var(--text-main)', fontSize: '1rem' }}>
+              مرحباً <strong>{currentUser.name}</strong> ({translateRole(currentUser.role)})
+            </p>
+            <button onClick={() => router.push(`/${currentUser.role}`)} className={styles.googleBtn}>
+              الانتقال إلى اللوحة ({translateRole(currentUser.role)})
+            </button>
+            <button onClick={handleLogout} className={styles.logoutBtn}>
+              تسجيل الخروج
+            </button>
+          </div>
         )}
       </div>
     </div>
