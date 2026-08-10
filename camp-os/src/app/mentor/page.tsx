@@ -1,36 +1,35 @@
 'use client';
 
 import React from 'react';
-import { useCampContext, useTeams } from '@/lib/services/CampContext';
+import { useCampContext, useTeams, useTeamInterventions } from '@/lib/services/CampContext';
 import styles from './mentor.module.css';
 
-export default function MentorDashboard() {
+const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
   const { provider, currentUser } = useCampContext();
-  const teams = useTeams();
+  const interventions = useTeamInterventions(team.id) || [];
+  
+  const openInterventions = interventions.filter(i => i.status === 'open');
+  const claimedInterventions = interventions.filter(i => i.status === 'claimed' && i.mentorId === currentUser?.id);
+  const othersClaimedInterventions = interventions.filter(i => i.status === 'claimed' && i.mentorId !== currentUser?.id);
 
-  if (!currentUser || currentUser.role !== 'mentor') {
-    return <div className={styles.error}>Unauthorized. Please login as Mentor via /dev.</div>;
-  }
-
-  const handleApproveCheckpoint = async (teamId: string) => {
-    await provider.approveCheckpoint(teamId, 'mvp_build');
+  const handleApproveCheckpoint = async () => {
+    await provider.approveCheckpoint(team.id, 'mvp_build', currentUser!.id);
   };
 
-  const handleUpdateHealth = async (teamId: string, health: 'green' | 'yellow' | 'red') => {
-    await provider.updateTeam(teamId, { healthStatus: health });
+  const handleUpdateHealth = async (health: 'green' | 'yellow' | 'red') => {
+    await provider.updateTeam(team.id, { healthStatus: health });
   };
 
-  const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red');
-  const monitoringTeams = teams.filter(t => t.checkpointStatus !== 'pending' && t.healthStatus !== 'red')
-    .sort((a, b) => {
-      // Yellow first, then green
-      if (a.healthStatus === 'yellow' && b.healthStatus === 'green') return -1;
-      if (a.healthStatus === 'green' && b.healthStatus === 'yellow') return 1;
-      return 0;
-    });
+  const handleClaim = async (id: string) => {
+    await provider.claimIntervention(team.id, id, currentUser!.id);
+  };
 
-  const renderTeamCard = (team: any, isUrgent: boolean) => (
-    <div key={team.id} className={`${styles.teamCard} ${styles[`health-${team.healthStatus}`]} ${isUrgent ? styles.urgentCard : ''}`}>
+  const handleResolve = async (id: string) => {
+    await provider.resolveIntervention(team.id, id, currentUser!.id);
+  };
+
+  return (
+    <div className={`${styles.teamCard} ${styles[`health-${team.healthStatus}`]} ${isUrgent ? styles.urgentCard : ''}`}>
       <div className={styles.cardHeader}>
         <div className={styles.headerLeft}>
           <h2>{team.name}</h2>
@@ -52,27 +51,69 @@ export default function MentorDashboard() {
       </div>
 
       <div className={styles.checkpointSection}>
-        <span className={`${styles.statusLabel} ${styles[`status-${team.checkpointStatus}`]}`}>
-          Checkpoint: {team.checkpointStatus.toUpperCase()}
-        </span>
+        {team.checkpointStatus !== 'idle' && (
+          <span className={`${styles.statusLabel} ${styles[`status-${team.checkpointStatus}`]}`}>
+            Checkpoint: {team.checkpointStatus.toUpperCase()}
+          </span>
+        )}
         
         {team.checkpointStatus === 'pending' && (
           <button 
-            onClick={() => handleApproveCheckpoint(team.id)}
+            onClick={handleApproveCheckpoint}
             className={styles.approveButton}
           >
             Approve Checkpoint
           </button>
         )}
         
+        {openInterventions.length > 0 && (
+          <div className={styles.interventionsBox}>
+            <p className={styles.interventionsLabel}>🚨 Help Requested</p>
+            {openInterventions.map(i => (
+              <button key={i.id} onClick={() => handleClaim(i.id)} className={styles.claimBtn}>
+                Claim Intervention
+              </button>
+            ))}
+          </div>
+        )}
+
+        {claimedInterventions.length > 0 && (
+          <div className={styles.interventionsBox}>
+            <p className={styles.interventionsLabel}>🛠️ You are helping this team</p>
+            {claimedInterventions.map(i => (
+              <button key={i.id} onClick={() => handleResolve(i.id)} className={styles.resolveBtn}>
+                Mark Resolved
+              </button>
+            ))}
+          </div>
+        )}
+
+        {othersClaimedInterventions.length > 0 && (
+          <div className={styles.interventionsBox}>
+            <p className={styles.interventionsLabel}>👀 Another mentor is helping</p>
+          </div>
+        )}
+        
         <div className={styles.healthControls}>
-          <button onClick={() => handleUpdateHealth(team.id, 'green')} className={styles.healthBtnGreen}>✓</button>
-          <button onClick={() => handleUpdateHealth(team.id, 'yellow')} className={styles.healthBtnYellow}>⚠️</button>
-          <button onClick={() => handleUpdateHealth(team.id, 'red')} className={styles.healthBtnRed}>🚨</button>
+          <button onClick={() => handleUpdateHealth('green')} className={styles.healthBtnGreen}>✓</button>
+          <button onClick={() => handleUpdateHealth('yellow')} className={styles.healthBtnYellow}>⚠️</button>
+          <button onClick={() => handleUpdateHealth('red')} className={styles.healthBtnRed}>🚨</button>
         </div>
       </div>
     </div>
   );
+};
+
+export default function MentorDashboard() {
+  const { currentUser } = useCampContext();
+  const teams = useTeams();
+
+  if (!currentUser || currentUser.role !== 'mentor') {
+    return <div className={styles.error}>Unauthorized. Please login as Mentor via /dev.</div>;
+  }
+
+  const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
+  const monitoringTeams = teams.filter(t => t.checkpointStatus !== 'pending' && t.healthStatus === 'green');
 
   return (
     <div className={styles.container}>
@@ -88,7 +129,7 @@ export default function MentorDashboard() {
           </h2>
           <div className={styles.urgentGrid}>
             {actionRequiredTeams.length > 0 ? (
-              actionRequiredTeams.map(t => renderTeamCard(t, true))
+              actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} />)
             ) : (
               <div className={styles.emptyLane}>✅ All caught up! No teams need immediate help.</div>
             )}
@@ -101,7 +142,7 @@ export default function MentorDashboard() {
             ✅ Monitoring <span className={styles.countBadge}>{monitoringTeams.length}</span>
           </h2>
           <div className={styles.monitoringGrid}>
-            {monitoringTeams.map(t => renderTeamCard(t, false))}
+            {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} />)}
           </div>
         </section>
       </div>

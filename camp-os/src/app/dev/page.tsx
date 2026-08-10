@@ -3,10 +3,8 @@
 import React from 'react';
 import { useCampContext } from '@/lib/services/CampContext';
 import { UserRole } from '@/lib/services/types';
-import { auth, db } from '@/lib/services/firebase';
-import { signInAnonymously, signOut } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
 import styles from './dev.module.css';
+import Link from 'next/link';
 
 export default function DevControlPanel() {
   const { provider, currentUser, setCurrentUser } = useCampContext();
@@ -15,18 +13,8 @@ export default function DevControlPanel() {
 
   const handleSimulateLogin = async (role: UserRole, teamId?: string) => {
     if (isFirebase) {
-      try {
-        const cred = await signInAnonymously(auth);
-        const name = `Dev ${role} (Firebase)`;
-        await setDoc(doc(db, 'users', cred.user.uid), {
-          name,
-          role,
-          teamId: teamId || null
-        });
-        alert(`Logged in to Firebase anonymously as ${role}`);
-      } catch (err: any) {
-        alert('Firebase Login Error: ' + err.message);
-      }
+      alert("Firebase roles are strictly managed via Google Auth and the staff allowlist. Use /login instead.");
+      return;
     } else {
       setCurrentUser({
         id: `dev-${role}-${Math.random().toString(36).substr(2, 5)}`,
@@ -39,7 +27,7 @@ export default function DevControlPanel() {
 
   const handleLogout = async () => {
     if (isFirebase) {
-      await signOut(auth);
+      alert("Use /login to manage Firebase auth.");
     } else {
       setCurrentUser(null);
     }
@@ -49,7 +37,7 @@ export default function DevControlPanel() {
     if (window.confirm("CRITICAL: Are you sure you want to reset the ENTIRE camp state to initial? This cannot be undone.")) {
       if (isFirebase) {
         if (currentUser?.role !== 'organizer') {
-          alert("Firebase Reset requires you to be logged in as Organizer first.");
+          alert("Firebase Reset requires you to be logged in as Organizer via Google Auth first.");
           return;
         }
         try {
@@ -70,7 +58,7 @@ export default function DevControlPanel() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1>Camp OS - Dev Control Panel</h1>
-        <p>Switch roles to preview the Camp OS locally.</p>
+        <p>Switch roles to preview the Camp OS locally (Mock Provider Only).</p>
       </header>
 
       <div className={styles.grid}>
@@ -79,19 +67,25 @@ export default function DevControlPanel() {
           <p>Logged in as: <strong>{currentUser ? currentUser.role : 'None'}</strong></p>
           {currentUser?.teamId && <p>Team: {currentUser.teamId}</p>}
           <p>Provider: <strong>{isFirebase ? 'Firebase' : 'Mock'}</strong></p>
-          <button onClick={handleLogout} className={styles.buttonOutline}>
-            Logout
-          </button>
+          
+          {isFirebase && (
+            <Link href="/login" className={styles.button}>Go to Login</Link>
+          )}
+          {!isFirebase && (
+            <button onClick={handleLogout} className={styles.buttonOutline}>
+              Logout
+            </button>
+          )}
         </div>
 
         <div className={styles.card}>
-          <h2>Simulate Login</h2>
+          <h2>Simulate Login (Mock Only)</h2>
           <div className={styles.buttonGroup}>
-            <button onClick={() => handleSimulateLogin('organizer')} className={styles.button}>Organizer</button>
-            <button onClick={() => handleSimulateLogin('mentor')} className={styles.button}>Mentor</button>
-            <button onClick={() => handleSimulateLogin('judge')} className={styles.button}>Judge</button>
-            <button onClick={() => handleSimulateLogin('participant', 'team-nova')} className={styles.buttonParticipant}>Participant (Team Nova)</button>
-            <button onClick={() => handleSimulateLogin('participant', 'team-alpha')} className={styles.buttonParticipant}>Participant (Team Alpha)</button>
+            <button onClick={() => handleSimulateLogin('organizer')} className={styles.button} disabled={isFirebase}>Organizer</button>
+            <button onClick={() => handleSimulateLogin('mentor')} className={styles.button} disabled={isFirebase}>Mentor</button>
+            <button onClick={() => handleSimulateLogin('judge')} className={styles.button} disabled={isFirebase}>Judge</button>
+            <button onClick={() => handleSimulateLogin('participant', 'team-nova')} className={styles.buttonParticipant} disabled={isFirebase}>Participant (Team Nova)</button>
+            <button onClick={() => handleSimulateLogin('participant', 'team-alpha')} className={styles.buttonParticipant} disabled={isFirebase}>Participant (Team Alpha)</button>
           </div>
         </div>
 

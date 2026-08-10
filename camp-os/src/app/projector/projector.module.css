@@ -264,3 +264,27 @@
   color: var(--accent-green);
   text-shadow: 0 0 100px var(--accent-green);
 }
+
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 3rem;
+}
+
+.projectorTimer {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-glass-strong);
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-size: 3.5rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-blue);
+  box-shadow: 0 0 30px var(--accent-blue-glow);
+}
+
+.timerWarning {
+  color: var(--danger, #ef4444);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+  animation: pulseHuge 1s infinite alternate;
+}

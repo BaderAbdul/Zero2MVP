@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useCampContext, useGlobalState, useTeam } from '@/lib/services/CampContext';
+import { useCampContext, useTeam } from '@/lib/services/CampContext';
+import { useCampEngine } from '@/lib/services/campEngine';
 import styles from './judge.module.css';
 
 export default function JudgeExperience() {
   const { provider, currentUser } = useCampContext();
-  const globalState = useGlobalState();
+  const { isLoaded, globalState, currentRoSPhase } = useCampEngine();
   const activeTeam = useTeam(globalState?.activeDemoTeamId || undefined);
 
   const [scores, setScores] = useState({
@@ -30,7 +31,9 @@ export default function JudgeExperience() {
     return <div className={styles.error}>Unauthorized. Please login as Judge via /dev.</div>;
   }
 
-  if (!globalState?.currentPhase.startsWith('demo_day')) {
+  if (!isLoaded || !globalState) return <div className={styles.container}>Loading...</div>;
+
+  if (currentRoSPhase.type !== 'demo_day') {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
         <h1>Demo Day has not started.</h1>

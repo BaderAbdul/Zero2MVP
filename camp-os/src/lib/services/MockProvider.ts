@@ -1,11 +1,13 @@
 'use client';
 
-import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage } from './types';
+import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage, Intervention, User } from './types';
 
 // Initial Mock Data
 const INITIAL_GLOBAL_STATE: GlobalState = {
   currentPhase: 'setup',
+  campStatus: 'setup',
   activeDemoTeamId: null,
+  nextDemoTeamId: null,
   announcement: null,
   timerEndTime: null,
   revealScores: false,
@@ -13,24 +15,28 @@ const INITIAL_GLOBAL_STATE: GlobalState = {
 
 const INITIAL_TEAMS: Team[] = [
   {
-    id: 'team-nova',
-    name: 'Team Nova',
-    projectIdea: 'AI Study Companion',
+    id: 'team1',
+    name: 'Alpha Squad',
+    joinCode: 'ALPHA1',
+    projectIdea: 'AI-driven task manager',
     currentStage: 'ideation',
-    progressPercentage: 0,
+    progressPercentage: 20,
     healthStatus: 'green',
     checkpointStatus: 'idle',
     demoDayTotalScore: 0,
+    completedTaskIds: []
   },
   {
-    id: 'team-alpha',
-    name: 'Team Alpha',
-    projectIdea: 'Smart Health Tracker',
+    id: 'team2',
+    name: 'Beta Builders',
+    joinCode: 'BETA22',
+    projectIdea: 'Sustainable delivery platform',
     currentStage: 'ideation',
-    progressPercentage: 0,
+    progressPercentage: 10,
     healthStatus: 'green',
     checkpointStatus: 'idle',
     demoDayTotalScore: 0,
+    completedTaskIds: []
   }
 ];
 
@@ -41,6 +47,7 @@ interface MockDB {
   teams: Team[];
   tasks: Record<string, Task[]>;
   demoScores: Record<string, DemoDayScore[]>;
+  interventions: Record<string, Intervention[]>;
 }
 
 export class MockProvider implements DataProvider {
@@ -48,6 +55,7 @@ export class MockProvider implements DataProvider {
   private teams: Map<string, Team>;
   private tasks: Map<string, Task[]>;
   private demoScores: Map<string, DemoDayScore[]>;
+  private interventions: Map<string, Intervention[]>;
 
   // Subscriptions
   private globalStateSubscribers: Set<(state: GlobalState) => void> = new Set();
@@ -55,12 +63,14 @@ export class MockProvider implements DataProvider {
   private teamSubscribers: Map<string, Set<(team: Team | null) => void>> = new Map();
   private tasksSubscribers: Map<string, Set<(tasks: Task[]) => void>> = new Map();
   private scoresSubscribers: Map<string, Set<(scores: DemoDayScore[]) => void>> = new Map();
+  private interventionsSubscribers: Map<string, Set<(interventions: Intervention[]) => void>> = new Map();
 
   constructor() {
     this.globalState = { ...INITIAL_GLOBAL_STATE };
     this.teams = new Map(INITIAL_TEAMS.map(t => [t.id, { ...t }]));
     this.tasks = new Map();
     this.demoScores = new Map();
+    this.interventions = new Map();
 
     this.loadFromStorage();
 
@@ -84,6 +94,7 @@ export class MockProvider implements DataProvider {
         this.teams = new Map(parsed.teams.map(t => [t.id, t]));
         this.tasks = new Map(Object.entries(parsed.tasks || {}));
         this.demoScores = new Map(Object.entries(parsed.demoScores || {}));
+        this.interventions = new Map(Object.entries(parsed.interventions || {}));
         return;
       } catch (e) {
         console.error("Failed to parse mock DB", e);
@@ -97,7 +108,8 @@ export class MockProvider implements DataProvider {
       globalState: this.globalState,
       teams: Array.from(this.teams.values()),
       tasks: Object.fromEntries(this.tasks),
-      demoScores: Object.fromEntries(this.demoScores)
+      demoScores: Object.fromEntries(this.demoScores),
+      interventions: Object.fromEntries(this.interventions)
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     this.notifyAll(); // Also notify local tab
@@ -109,9 +121,30 @@ export class MockProvider implements DataProvider {
     Array.from(this.teams.keys()).forEach(id => this.notifyTeam(id));
     Array.from(this.tasks.keys()).forEach(id => this.notifyTasks(id));
     Array.from(this.demoScores.keys()).forEach(id => this.notifyScores(id));
+    Array.from(this.interventions.keys()).forEach(id => this.notifyInterventions(id));
   }
 
   // --- Subscriptions ---
+
+  private demoScores_list: DemoDayScore[] = [];
+
+  subscribeToUsers(callback: (users: User[]) => void): () => void {
+    // Return empty for mock
+    callback([]);
+    return () => {};
+  }
+
+  async joinTeam(joinCode: string, userId: string): Promise<string> {
+    return "team1";
+  }
+
+  async createTeam(name: string): Promise<void> {
+    // mock
+  }
+
+  async deleteTeam(teamId: string): Promise<void> {
+    // mock delete
+  }
 
   subscribeToGlobalState(callback: (state: GlobalState) => void): () => void {
     this.globalStateSubscribers.add(callback);
@@ -152,6 +185,15 @@ export class MockProvider implements DataProvider {
     return () => this.scoresSubscribers.get(teamId)!.delete(callback);
   }
 
+  subscribeToInterventions(teamId: string, callback: (interventions: Intervention[]) => void): () => void {
+    if (!this.interventionsSubscribers.has(teamId)) {
+      this.interventionsSubscribers.set(teamId, new Set());
+    }
+    this.interventionsSubscribers.get(teamId)!.add(callback);
+    callback(this.interventions.get(teamId) || []);
+    return () => this.interventionsSubscribers.get(teamId)!.delete(callback);
+  }
+
   // --- Mutations ---
 
   async updateGlobalState(updates: Partial<GlobalState>): Promise<void> {
@@ -167,22 +209,14 @@ export class MockProvider implements DataProvider {
     }
   }
 
-  async submitTask(teamId: string, task: Partial<Task>): Promise<void> {
-    if (!this.tasks.has(teamId)) this.tasks.set(teamId, []);
-    
-    const teamTasks = this.tasks.get(teamId)!;
-    const existingIndex = teamTasks.findIndex(t => t.taskId === task.taskId);
-    
-    if (existingIndex >= 0) {
-      teamTasks[existingIndex] = { ...teamTasks[existingIndex], ...task } as Task;
-    } else {
-      teamTasks.push(task as Task);
-    }
-    
+  async submitTask(teamId: string, taskId: string): Promise<void> {
     const team = this.teams.get(teamId);
     if (team) {
-      const newProgress = Math.min(100, team.progressPercentage + 10);
-      this.teams.set(teamId, { ...team, progressPercentage: newProgress });
+      const completed = team.completedTaskIds || [];
+      if (!completed.includes(taskId)) {
+        completed.push(taskId);
+      }
+      this.teams.set(teamId, { ...team, completedTaskIds: completed });
     }
     this.saveToStorage();
   }
@@ -195,12 +229,62 @@ export class MockProvider implements DataProvider {
     }
   }
 
-  async approveCheckpoint(teamId: string, nextStage: CampStage): Promise<void> {
+  async approveCheckpoint(teamId: string, nextStage: CampStage, mentorId: string): Promise<void> {
     const team = this.teams.get(teamId);
     if (team) {
-      this.teams.set(teamId, { ...team, checkpointStatus: 'idle', currentStage: nextStage });
+      this.teams.set(teamId, { ...team, checkpointStatus: 'approved', currentStage: nextStage });
       this.saveToStorage();
     }
+  }
+
+  async requestIntervention(teamId: string, participantId: string): Promise<void> {
+    if (!this.interventions.has(teamId)) this.interventions.set(teamId, []);
+    const teamInts = this.interventions.get(teamId)!;
+    teamInts.push({
+      id: Math.random().toString(36).substr(2, 9),
+      teamId,
+      participantId,
+      status: 'open',
+      createdAt: Date.now()
+    });
+    const team = this.teams.get(teamId);
+    if (team) {
+      this.teams.set(teamId, { ...team, healthStatus: 'red' });
+    }
+    this.saveToStorage();
+  }
+
+  async claimIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void> {
+    const teamInts = this.interventions.get(teamId);
+    if (teamInts) {
+      const int = teamInts.find(i => i.id === interventionId);
+      if (int) {
+        int.status = 'claimed';
+        int.mentorId = mentorId;
+        int.claimedAt = Date.now();
+      }
+    }
+    const team = this.teams.get(teamId);
+    if (team) {
+      this.teams.set(teamId, { ...team, healthStatus: 'yellow' });
+    }
+    this.saveToStorage();
+  }
+
+  async resolveIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void> {
+    const teamInts = this.interventions.get(teamId);
+    if (teamInts) {
+      const int = teamInts.find(i => i.id === interventionId);
+      if (int) {
+        int.status = 'resolved';
+        int.resolvedAt = Date.now();
+      }
+    }
+    const team = this.teams.get(teamId);
+    if (team) {
+      this.teams.set(teamId, { ...team, healthStatus: 'green' });
+    }
+    this.saveToStorage();
   }
 
   async submitJudgeScore(score: Omit<DemoDayScore, 'id' | 'totalScore'>): Promise<void> {
@@ -232,6 +316,7 @@ export class MockProvider implements DataProvider {
     this.teams = new Map(INITIAL_TEAMS.map(t => [t.id, { ...t }]));
     this.tasks = new Map();
     this.demoScores = new Map();
+    this.interventions = new Map();
     this.saveToStorage();
   }
 
@@ -255,6 +340,10 @@ export class MockProvider implements DataProvider {
   private notifyScores(teamId: string) {
     const s = this.demoScores.get(teamId) || [];
     this.scoresSubscribers.get(teamId)?.forEach(cb => cb(s));
+  }
+  private notifyInterventions(teamId: string) {
+    const i = this.interventions.get(teamId) || [];
+    this.interventionsSubscribers.get(teamId)?.forEach(cb => cb(i));
   }
 }
 

@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGlobalState, useTeams } from '@/lib/services/CampContext';
+import { useTeams, useDemoScores } from '@/lib/services/CampContext';
+import { useCampEngine } from '@/lib/services/campEngine';
 import styles from './projector.module.css';
-import { CampPhase } from '@/lib/services/types';
 
 const variants = {
   initial: { opacity: 0, scale: 0.95 },
@@ -13,13 +13,92 @@ const variants = {
 };
 
 export default function ProjectorScreen() {
-  const globalState = useGlobalState();
+  const { isLoaded, globalState, currentRoSPhase, isBreak, timeRemainingSeconds, isTimerRunning } = useCampEngine();
   const teams = useTeams();
 
-  if (!globalState) return <div className={styles.loading}>Loading...</div>;
+  // Derived scores logic
+  // The projector only subscribes to active team scores during demo day. 
+  // For the finished screen, it would technically need all scores, but for MVP let's assume it fetches active ones, 
+  // or we need a way to fetch all scores. For simplicity, since judges don't mutate demoDayTotalScore anymore, 
+  // we could just fetch all demo_scores if we want a leaderboard. 
+  // Actually, wait: `useDemoScores` takes a `teamId`. Let's just use it for the active team for now.
+  // We'll pass the activeDemoTeamId.
+  const activeTeamScores = useDemoScores(globalState?.activeDemoTeamId || undefined);
+  const derivedTotalScore = activeTeamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
 
-  const renderPhaseContent = (phase: CampPhase) => {
-    switch (phase) {
+  if (!isLoaded || !globalState) return <div className={styles.loading}>Loading...</div>;
+
+  const renderTimer = () => {
+    if (!isTimerRunning && !isBreak) return null;
+    
+    const displaySeconds = timeRemainingSeconds;
+    const m = Math.floor(displaySeconds / 60);
+    const s = displaySeconds % 60;
+    const formatted = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    
+    if (isBreak) {
+      return (
+        <div className={styles.projectorTimer}>
+          <span className={styles.timerValue}>PAUSED</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div className={`${styles.projectorTimer} ${displaySeconds < 60 ? styles.timerWarning : ''}`}>
+        <span className={styles.timerValue}>{formatted}</span>
+      </div>
+    );
+  };
+
+  const renderPhaseContent = () => {
+    if (isBreak) {
+      return (
+        <motion.div key="break" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
+          <h1 className={styles.glitchText}>BREAK TIME</h1>
+          <h2 className={styles.subtitle}>REST AND RECHARGE</h2>
+          {renderTimer()}
+          {globalState.announcement && (
+            <div className={styles.announcementBox}>{globalState.announcement}</div>
+          )}
+        </motion.div>
+      );
+    }
+
+    if (currentRoSPhase.type === 'demo_day') {
+      const activeTeam = teams.find(t => t.id === globalState.activeDemoTeamId);
+      return (
+        <motion.div key="demoday" className={styles.centerBox} {...variants}>
+          <h1 className={styles.fireText}>🔥 DEMO DAY 🔥</h1>
+          {activeTeam && (
+            <div className={styles.activeTeamBox}>
+              <h2 className={styles.upNext}>
+                {currentRoSPhase.id === 'demo_day_queue' && 'WAITING...'}
+                {currentRoSPhase.id === 'demo_day_intro' && 'UP NEXT'}
+                {currentRoSPhase.id === 'demo_day_presenting' && 'PRESENTING NOW'}
+                {currentRoSPhase.id === 'demo_day_judging' && 'JUDGES SCORING...'}
+                {currentRoSPhase.id === 'demo_day_reveal' && 'FINAL SCORE'}
+              </h2>
+              <h1 className={styles.massiveTeamName}>{activeTeam.name}</h1>
+              <p className={styles.projectIdea}>"{activeTeam.projectIdea}"</p>
+              
+              {currentRoSPhase.id === 'demo_day_reveal' && globalState.revealScores && (
+                <motion.h1 
+                  className={styles.massiveScore}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', bounce: 0.5 }}
+                >
+                  {derivedTotalScore} / 50
+                </motion.h1>
+              )}
+            </div>
+          )}
+        </motion.div>
+      );
+    }
+
+    switch (currentRoSPhase.id) {
       case 'setup':
       case 'welcome':
         return (
@@ -32,26 +111,18 @@ export default function ProjectorScreen() {
           </motion.div>
         );
 
-      case 'break':
-        return (
-          <motion.div key="break" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
-            <h1 className={styles.glitchText}>BREAK TIME</h1>
-            <h2 className={styles.subtitle}>REST AND RECHARGE</h2>
-            {globalState.announcement && (
-              <div className={styles.announcementBox}>{globalState.announcement}</div>
-            )}
-          </motion.div>
-        );
-
       case 'ideation':
       case 'build':
         return (
           <motion.div key="build" className={styles.buildScreen} {...variants}>
             <div className={styles.buildHeader}>
-              <h1 className={styles.phaseTitle}>
-                <span className={styles.liveDot}></span>
-                {phase === 'ideation' ? 'IDEATION MODE' : 'BUILD MODE'}
-              </h1>
+              <div className={styles.headerTitleRow}>
+                <h1 className={styles.phaseTitle}>
+                  <span className={styles.liveDot}></span>
+                  {currentRoSPhase.title.toUpperCase()}
+                </h1>
+                {renderTimer()}
+              </div>
               {globalState.announcement && (
                 <div className={styles.announcementBoxAlt}>{globalState.announcement}</div>
               )}
@@ -89,6 +160,7 @@ export default function ProjectorScreen() {
           <motion.div key="checkpoint" className={styles.centerBox} {...variants}>
             <h1 className={styles.alertText}>🚨 CHECKPOINT 🚨</h1>
             <h2 className={styles.subtitle}>SUBMIT YOUR WORK FOR REVIEW</h2>
+            {renderTimer()}
             <div className={styles.checkpointGrid}>
                {teams.map(team => (
                  <div key={team.id} className={`${styles.checkpointPill} ${styles[team.checkpointStatus]}`}>
@@ -99,55 +171,12 @@ export default function ProjectorScreen() {
           </motion.div>
         );
 
-      case 'demo_day_queue':
-      case 'demo_day_intro':
-      case 'demo_day_presenting':
-      case 'demo_day_judging':
-      case 'demo_day_reveal':
-        const activeTeam = teams.find(t => t.id === globalState.activeDemoTeamId);
-        return (
-          <motion.div key="demoday" className={styles.centerBox} {...variants}>
-            <h1 className={styles.fireText}>🔥 DEMO DAY 🔥</h1>
-            {activeTeam && (
-              <div className={styles.activeTeamBox}>
-                <h2 className={styles.upNext}>
-                  {phase === 'demo_day_queue' && 'WAITING...'}
-                  {phase === 'demo_day_intro' && 'UP NEXT'}
-                  {phase === 'demo_day_presenting' && 'PRESENTING NOW'}
-                  {phase === 'demo_day_judging' && 'JUDGES SCORING...'}
-                  {phase === 'demo_day_reveal' && 'FINAL SCORE'}
-                </h2>
-                <h1 className={styles.massiveTeamName}>{activeTeam.name}</h1>
-                <p className={styles.projectIdea}>"{activeTeam.projectIdea}"</p>
-                
-                {phase === 'demo_day_reveal' && globalState.revealScores && (
-                  <motion.h1 
-                    className={styles.massiveScore}
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', bounce: 0.5 }}
-                  >
-                    {activeTeam.demoDayTotalScore} / 50
-                  </motion.h1>
-                )}
-              </div>
-            )}
-          </motion.div>
-        );
-      
       case 'finished':
-        const winner = [...teams].sort((a,b) => b.demoDayTotalScore - a.demoDayTotalScore)[0];
+        // For MVP finished screen, we'll just display a generic "Finished" if we can't fetch all scores.
         return (
           <motion.div key="finished" className={styles.centerBox} {...variants}>
-            <h1 className={styles.glitchText}>🏆 WE HAVE A WINNER</h1>
-            <motion.div 
-              initial={{ y: 50, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5 }}
-            >
-              <h1 className={styles.massiveTeamName}>{winner?.name}</h1>
-              <h2 className={styles.subtitle}>{winner?.demoDayTotalScore} Points</h2>
-            </motion.div>
+            <h1 className={styles.glitchText}>🏆 DEMO DAY CONCLUDED</h1>
+            <h2 className={styles.subtitle}>GREAT JOB EVERYONE</h2>
           </motion.div>
         );
 
@@ -159,7 +188,7 @@ export default function ProjectorScreen() {
   return (
     <div className={styles.projectorContainer}>
       <AnimatePresence mode="wait">
-        {renderPhaseContent(globalState.currentPhase)}
+        {renderPhaseContent()}
       </AnimatePresence>
     </div>
   );

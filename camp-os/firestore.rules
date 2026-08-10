@@ -14,15 +14,42 @@ service cloud.firestore {
     function isRole(role) {
       return isSignedIn() && getUserData().role == role;
     }
+    
+    function isStaffAllowlisted(email, role) {
+      let docData = get(/databases/$(database)/documents/staff_allowlist/$(email)).data;
+      return docData != null && docData.role == role;
+    }
 
     // users
     match /users/{userId} {
-      // Anyone can create their user profile (for dev login simulation)
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      // Users can read their own profile
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      // Organizer can read all users
-      allow read, write: if isRole('organizer');
+      allow read: if isSignedIn();
+      
+      // A user can create their profile.
+      // Default to 'participant'.
+      // If requesting a staff role, must be explicitly authorized in staff_allowlist by email.
+      allow create: if isSignedIn() && request.auth.uid == userId && (
+        (request.resource.data.role == 'participant') ||
+        (request.auth.token.email != null && isStaffAllowlisted(request.auth.token.email, request.resource.data.role))
+      );
+      
+      // Participant can join a team EXACTLY ONCE if they provide the correct joinCode
+      allow update: if isRole('organizer') || (
+        isSignedIn() && 
+        request.auth.uid == userId && 
+        resource.data.get('teamId', null) == null && 
+        'teamId' in request.resource.data &&
+        'joinCode' in request.resource.data &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teamId', 'joinCode']) &&
+        get(/databases/$(database)/documents/teams/$(request.resource.data.teamId)).data.joinCode == request.resource.data.joinCode
+      );
+
+      allow delete: if isRole('organizer');
+    }
+
+    // staff_allowlist
+    match /staff_allowlist/{email} {
+      allow read: if isSignedIn();
+      allow write: if isRole('organizer');
     }
 
     // camp_os/global_state
@@ -35,39 +62,47 @@ service cloud.firestore {
 
     // teams
     match /teams/{teamId} {
-      // Publicly readable (projector, mentor, judge need to see teams)
       allow read: if true;
       
-      // Organizer can do anything
       allow write: if isRole('organizer');
       
-      // Mentor can only update healthStatus and checkpointStatus/currentStage
+      // Mentor can update healthStatus and checkpointStatus/currentStage
       allow update: if isRole('mentor') && 
         request.resource.data.diff(resource.data).affectedKeys()
         .hasOnly(['healthStatus', 'checkpointStatus', 'currentStage']);
         
-      // Participants can only update checkpointStatus, and demoDayTotalScore (from judge)
-      // Actually participants update progressPercentage when they submit tasks
+      // Participants update progressPercentage and completedTaskIds
       allow update: if isRole('participant') && 
         getUserData().teamId == teamId &&
         request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['progressPercentage', 'checkpointStatus']);
+        .hasOnly(['progressPercentage', 'completedTaskIds', 'checkpointStatus']) &&
+        // Bounds checking
+        request.resource.data.progressPercentage >= 0 && 
+        request.resource.data.progressPercentage <= 100;
         
-      // Allow judges to update total scores (MVP limitation workaround)
-      allow update: if isRole('judge') &&
-        request.resource.data.diff(resource.data).affectedKeys()
-        .hasOnly(['demoDayTotalScore']);
+      // Judges CANNOT update team directly anymore (derived from demo_scores)
+    }
+
+    // team interventions
+    match /teams/{teamId}/interventions/{interventionId} {
+      allow read: if true;
+      
+      // Participant can request intervention only if team health is NOT red/yellow
+      allow create: if isRole('participant') && 
+        getUserData().teamId == teamId &&
+        get(/databases/$(database)/documents/teams/$(teamId)).data.healthStatus == 'green' &&
+        request.resource.data.status == 'open';
+        
+      allow update: if isRole('mentor') &&
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'mentorId', 'claimedAt', 'resolvedAt']);
+        
+      allow write: if isRole('organizer');
     }
 
     // team tasks
     match /teams/{teamId}/tasks/{taskId} {
-      // Anyone can read
       allow read: if true;
-      
-      // Only team members can create tasks
       allow create: if isRole('participant') && getUserData().teamId == teamId;
-      
-      // Organizer can do anything
       allow write: if isRole('organizer');
     }
 
@@ -75,11 +110,27 @@ service cloud.firestore {
     match /demo_scores/{scoreId} {
       allow read: if true;
       
-      // Judges can create scores
-      allow create: if isRole('judge') && request.resource.data.judgeId == request.auth.uid;
+      // Judges can create/update scores
+      // ID must be {teamId}_{judgeId} to prevent duplicates
+      allow create, update: if isRole('judge') && 
+        request.resource.data.judgeId == request.auth.uid &&
+        scoreId == (request.resource.data.teamId + '_' + request.auth.uid);
       
-      // Organizer can do anything
       allow write: if isRole('organizer');
+    }
+
+    // camp_logs
+    match /camp_logs/{logId} {
+      allow read: if isRole('organizer');
+      
+      // Append only logs
+      allow create: if isSignedIn() &&
+        request.resource.data.actorId == request.auth.uid &&
+        request.resource.data.actorRole == getUserData().role &&
+        request.resource.data.type is string &&
+        request.resource.data.timestamp is number;
+        
+      allow update, delete: if false;
     }
   }
 }

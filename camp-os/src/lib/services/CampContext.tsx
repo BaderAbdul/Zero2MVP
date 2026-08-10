@@ -6,7 +6,7 @@ import { mockProvider } from './MockProvider';
 import { firebaseProvider } from './FirebaseProvider';
 import { auth, db } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 interface CampContextValue {
   provider: DataProvider;
@@ -18,6 +18,7 @@ const CampContext = createContext<CampContextValue | null>(null);
 
 export const CampProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   
   const isFirebase = process.env.NEXT_PUBLIC_DATA_PROVIDER === 'firebase';
   const activeProvider = isFirebase ? firebaseProvider : mockProvider;
@@ -30,15 +31,37 @@ export const CampProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try { setCurrentUser(JSON.parse(stored)); } catch (e) { }
         }
       }
+      setAuthLoading(false);
       return;
     }
 
     // Firebase Auth Flow
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        let userDoc = await getDoc(userRef);
+        
+        if (!userDoc.exists()) {
+          // New User: Check allowlist or default to participant
+          let assignedRole = 'participant';
+          if (firebaseUser.email) {
+            const allowlistDoc = await getDoc(doc(db, 'staff_allowlist', firebaseUser.email));
+            if (allowlistDoc.exists()) {
+              assignedRole = allowlistDoc.data().role;
+            }
+          }
+          
+          await setDoc(userRef, {
+            name: firebaseUser.displayName || firebaseUser.email || 'Participant',
+            role: assignedRole,
+            teamId: null
+          });
+          
+          userDoc = await getDoc(userRef); // Refetch to be safe
+        }
+
+        const data = userDoc.data();
+        if (data) {
           setCurrentUser({
             id: firebaseUser.uid,
             name: data.name || 'User',
@@ -49,6 +72,7 @@ export const CampProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setCurrentUser(null);
       }
+      setAuthLoading(false);
     });
 
     return unsubscribe;
@@ -76,7 +100,7 @@ export const CampProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <CampContext.Provider value={value}>
-      {children}
+      {!authLoading ? children : <div style={{padding: '2rem'}}>Loading Camp OS...</div>}
     </CampContext.Provider>
   );
 };
@@ -115,6 +139,20 @@ export function useTeams() {
   return teams;
 }
 
+export function useUsers() {
+  const { provider } = useCampContext();
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    if (provider.subscribeToUsers) {
+      const unsubscribe = provider.subscribeToUsers((u) => setUsers(u));
+      return unsubscribe;
+    }
+  }, [provider]);
+
+  return users;
+}
+
 export function useTeam(teamId: string | undefined) {
   const { provider } = useCampContext();
   const [team, setTeam] = useState<Team | null>(null);
@@ -128,4 +166,41 @@ export function useTeam(teamId: string | undefined) {
   }, [provider, teamId]);
 
   return team;
+}
+
+export function useTeamInterventions(teamId: string | undefined) {
+  const { provider } = useCampContext();
+  const [interventions, setInterventions] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!teamId) return;
+    if (provider.subscribeToInterventions) {
+      const unsubscribe = provider.subscribeToInterventions(teamId, (i) => {
+        setInterventions(i);
+      });
+      return unsubscribe;
+    }
+  }, [provider, teamId]);
+
+  return interventions;
+}
+
+export function useDemoScores(teamId?: string) {
+  const { provider } = useCampContext();
+  const [scores, setScores] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (!teamId) {
+      setScores([]);
+      return;
+    }
+    if (provider.subscribeToDemoScores) {
+      const unsubscribe = provider.subscribeToDemoScores(teamId, (s) => {
+        setScores(s);
+      });
+      return unsubscribe;
+    }
+  }, [provider, teamId]);
+
+  return scores;
 }
