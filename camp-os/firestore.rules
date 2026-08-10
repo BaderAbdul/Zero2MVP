@@ -1,0 +1,85 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper Functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+
+    // users
+    match /users/{userId} {
+      // Anyone can create their user profile (for dev login simulation)
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Users can read their own profile
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      // Organizer can read all users
+      allow read, write: if isRole('organizer');
+    }
+
+    // camp_os/global_state
+    match /camp_os/global_state {
+      // Publicly readable for all connected clients (projector, participants, etc.)
+      allow read: if true;
+      // Only organizer can modify global state
+      allow write: if isRole('organizer');
+    }
+
+    // teams
+    match /teams/{teamId} {
+      // Publicly readable (projector, mentor, judge need to see teams)
+      allow read: if true;
+      
+      // Organizer can do anything
+      allow write: if isRole('organizer');
+      
+      // Mentor can only update healthStatus and checkpointStatus/currentStage
+      allow update: if isRole('mentor') && 
+        request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['healthStatus', 'checkpointStatus', 'currentStage']);
+        
+      // Participants can only update checkpointStatus, and demoDayTotalScore (from judge)
+      // Actually participants update progressPercentage when they submit tasks
+      allow update: if isRole('participant') && 
+        getUserData().teamId == teamId &&
+        request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['progressPercentage', 'checkpointStatus']);
+        
+      // Allow judges to update total scores (MVP limitation workaround)
+      allow update: if isRole('judge') &&
+        request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['demoDayTotalScore']);
+    }
+
+    // team tasks
+    match /teams/{teamId}/tasks/{taskId} {
+      // Anyone can read
+      allow read: if true;
+      
+      // Only team members can create tasks
+      allow create: if isRole('participant') && getUserData().teamId == teamId;
+      
+      // Organizer can do anything
+      allow write: if isRole('organizer');
+    }
+
+    // demo_scores
+    match /demo_scores/{scoreId} {
+      allow read: if true;
+      
+      // Judges can create scores
+      allow create: if isRole('judge') && request.resource.data.judgeId == request.auth.uid;
+      
+      // Organizer can do anything
+      allow write: if isRole('organizer');
+    }
+  }
+}

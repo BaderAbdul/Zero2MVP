@@ -1,0 +1,82 @@
+:root {
+  /* Dark Mode Palette */
+  --bg-main: #0B0F19;       /* Deep slate/blue-black */
+  --bg-card: rgba(255, 255, 255, 0.03); /* Glassmorphism base */
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --border-glass: rgba(255, 255, 255, 0.1);
+  --border-glass-strong: rgba(255, 255, 255, 0.2);
+
+  /* Typography Colors */
+  --text-main: #F8FAFC;     /* Off-white */
+  --text-muted: #94A3B8;    /* Slate-400 */
+  --text-inverse: #0B0F19;
+
+  /* Brand Accents (Neon) */
+  --accent-blue: #3B82F6;
+  --accent-blue-glow: rgba(59, 130, 246, 0.5);
+  
+  --accent-green: #10B981;
+  --accent-green-glow: rgba(16, 185, 129, 0.5);
+  
+  --accent-amber: #F59E0B;
+  --accent-amber-glow: rgba(245, 158, 11, 0.5);
+
+  --accent-red: #EF4444;
+  --accent-red-glow: rgba(239, 68, 68, 0.5);
+
+  /* Layout & Spacing */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 24px;
+  --radius-pill: 9999px;
+}
+
+/* Base Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100vh;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Global Typography Overrides */
+h1, h2, h3, h4, h5, h6 {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: color 0.2s ease, text-shadow 0.2s ease;
+}
+
+a:hover {
+  text-shadow: 0 0 8px var(--accent-blue-glow);
+}
+
+/* Custom Scrollbar for a premium feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-glass-strong);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}

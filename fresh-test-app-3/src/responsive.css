@@ -1,0 +1,38 @@
+/* responsive.css */
+
+/* 1. Global Reset to ensure padding does not break widths */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* 2. Responsive image constraint */
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+/* 3. The Core Layout Container */
+.responsive-container {
+  /* Restrict maximum width on large desktop screens */
+  max-width: 1200px;
+  
+  /* Center the container horizontally on desktop */
+  margin-left: auto;
+  margin-right: auto;
+  
+  /* Provide breathing room on mobile edges */
+  padding-left: 1rem;
+  padding-right: 1rem;
+  
+  /* Ensure it doesn't overflow horizontally on small screens */
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Ensure body doesn't cause scrolling */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
