@@ -28,16 +28,16 @@ export default function JudgeExperience() {
   }, [activeTeam?.id]);
 
   if (!currentUser || currentUser.role !== 'judge') {
-    return <div className={styles.error}>Unauthorized. Please login as Judge via <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ محكّم عبر <a href="/login">/login</a>.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.container}>Loading...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.container}>جاري التحميل...</div>;
 
   if (currentRoSPhase.type !== 'demo_day') {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
-        <h1>Demo Day has not started.</h1>
-        <p>Grab a coffee and wait for the Organizer to begin.</p>
+        <h1>يوم العروض لم يبدأ بعد.</h1>
+        <p>الرجاء الانتظار حتى يقوم المنظّم ببدء الفعالية.</p>
       </div>
     </div>;
   }
@@ -45,8 +45,8 @@ export default function JudgeExperience() {
   if (!activeTeam) {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
-        <h1>Waiting for next team...</h1>
-        <p>Look at the Projector for the current lineup.</p>
+        <h1>في انتظار الفريق التالي...</h1>
+        <p>انظر إلى شاشة العرض لمعرفة الترتيب الحالي.</p>
       </div>
     </div>;
   }
@@ -68,8 +68,8 @@ export default function JudgeExperience() {
     return (
       <div className={styles.container}>
         <div className={styles.successBox}>
-          <h1>Score Submitted! ✅</h1>
-          <p>Waiting for the Organizer to switch to the next team.</p>
+          <h1>تم إرسال التقييم! ✅</h1>
+          <p>في انتظار قيام المنظّم بالتبديل إلى الفريق التالي.</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function JudgeExperience() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.label}>SCORING SHEET</p>
+        <p className={styles.label}>ورقة التقييم — SCORING SHEET</p>
         <h1 className={styles.teamName}>{activeTeam.name}</h1>
         <p className={styles.idea}>"{activeTeam.projectIdea}"</p>
       </header>
@@ -116,7 +116,7 @@ export default function JudgeExperience() {
           disabled={!allScored}
           className={styles.submitButton}
         >
-          {allScored ? 'SUBMIT FINAL SCORE' : 'COMPLETE ALL CRITERIA'}
+          {allScored ? 'إرسال التقييم النهائي' : 'أكمل جميع المعايير أولاً'}
         </button>
       </div>
     </div>

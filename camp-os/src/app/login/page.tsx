@@ -23,7 +23,7 @@ export default function LoginPage() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err: any) {
-      alert('Login Failed: ' + err.message);
+      alert('فشل تسجيل الدخول: ' + err.message);
     }
   };
 
@@ -32,9 +32,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>Camp OS Login</h1>
-      <p style={{ marginBottom: '2rem', color: '#64748b' }}>Please sign in to access your dashboard.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+      <h1 style={{ fontSize: '2rem', marginBottom: '1rem' }}>تسجيل الدخول — Camp OS Login</h1>
+      <p style={{ marginBottom: '2rem', color: '#64748b' }}>الرجاء تسجيل الدخول للوصول إلى لوحة المعلومات (Dashboard).</p>
       
       {!currentUser ? (
         <button 
@@ -45,7 +45,7 @@ export default function LoginPage() {
             fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
           }}
         >
-          Sign in with Google
+          تسجيل الدخول باستخدام Google
         </button>
       ) : (
         <button 
@@ -56,7 +56,7 @@ export default function LoginPage() {
             fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
           }}
         >
-          Sign Out
+          تسجيل الخروج
         </button>
       )}
     </div>

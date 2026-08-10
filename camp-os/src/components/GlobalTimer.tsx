@@ -36,15 +36,15 @@ export default function GlobalTimer() {
   if (isBreak) {
     return (
       <div className={`${styles.timerContainer} ${styles.breakMode}`}>
-        <span className={styles.timerLabel}>BREAK TIME</span>
-        <span className={styles.timerValue}>PAUSED</span>
+        <span className={styles.timerLabel}>استراحة — Break</span>
+        <span className={styles.timerValue}>متوقف</span>
       </div>
     );
   }
 
   return (
     <div className={`${styles.timerContainer} ${currentSeconds < 60 ? styles.warning : ''}`}>
-      <span className={styles.timerLabel}>REMAINING</span>
+      <span className={styles.timerLabel}>الوقت المتبقي</span>
       <span className={styles.timerValue}>{formatted}</span>
     </div>
   );

@@ -4,48 +4,48 @@ import { RunOfShowPhase, MissionTemplate, PhaseType } from './types';
 export const MISSIONS: Record<string, MissionTemplate> = {
   'mission_ideation': {
     id: 'mission_ideation',
-    title: 'Ideation & Validation',
-    description: 'Brainstorm your idea and validate it with a potential user.',
+    title: 'توليد الأفكار — Ideation',
+    description: 'اصنع فكرتك واختبرها مع مستخدم محتمل.',
     tasks: [
-      { id: 'task_brainstorm', description: 'Brainstorm 3 ideas' },
-      { id: 'task_select', description: 'Select the best idea' },
-      { id: 'task_validate', description: 'Validate with at least 1 person' }
+      { id: 'task_brainstorm', description: 'توليد 3 أفكار' },
+      { id: 'task_select', description: 'اختيار الفكرة الأفضل' },
+      { id: 'task_validate', description: 'التحقق من الفكرة مع شخص واحد على الأقل' }
     ]
   },
   'mission_build': {
     id: 'mission_build',
-    title: 'Build Core MVP',
-    description: 'Build the core functionality of your application.',
+    title: 'بناء الـ MVP — Build MVP',
+    description: 'بناء الخصائص الأساسية لمشروعك.',
     tasks: [
-      { id: 'task_repo', description: 'Initialize repository' },
-      { id: 'task_ui', description: 'Build basic UI' },
-      { id: 'task_logic', description: 'Implement core logic' }
+      { id: 'task_repo', description: 'تجهيز المستودع (Repository)' },
+      { id: 'task_ui', description: 'بناء واجهة المستخدم (UI)' },
+      { id: 'task_logic', description: 'برمجة المنطق الأساسي' }
     ]
   },
   'mission_pitch': {
     id: 'mission_pitch',
-    title: 'Prepare Pitch',
-    description: 'Get ready for Demo Day.',
+    title: 'تجهيز العرض — Pitch Prep',
+    description: 'الاستعداد لـ Demo Day.',
     tasks: [
-      { id: 'task_slides', description: 'Create pitch deck' },
-      { id: 'task_rehearse', description: 'Rehearse 3-minute pitch' }
+      { id: 'task_slides', description: 'تجهيز العرض التقديمي' },
+      { id: 'task_rehearse', description: 'التدرب على عرض مدته 3 دقائق' }
     ]
   }
 };
 
 export const RUN_OF_SHOW: RunOfShowPhase[] = [
-  { id: 'setup', title: 'Setup', description: 'Awaiting participants', durationMinutes: 0, order: 0, type: 'normal', allowAdvance: true, projectorMode: 'standby' },
-  { id: 'welcome', title: 'Welcome', description: 'Introduction to Camp', durationMinutes: 15, order: 1, type: 'normal', allowAdvance: true, projectorMode: 'intro' },
-  { id: 'ideation', title: 'Ideation', description: 'Brainstorming phase', durationMinutes: 45, order: 2, missionId: 'mission_ideation', type: 'normal', allowAdvance: true, projectorMode: 'timer' },
-  { id: 'build', title: 'Build MVP', description: 'Core building phase', durationMinutes: 120, order: 3, missionId: 'mission_build', type: 'normal', allowAdvance: true, projectorMode: 'timer' },
-  { id: 'checkpoint', title: 'Checkpoint', description: 'Mentor Review', durationMinutes: 30, order: 4, type: 'normal', allowAdvance: true, projectorMode: 'timer' },
-  { id: 'pitch_prep', title: 'Pitch Prep', description: 'Prepare for Demo Day', durationMinutes: 30, order: 5, missionId: 'mission_pitch', type: 'normal', allowAdvance: true, projectorMode: 'timer' },
-  { id: 'demo_day_queue', title: 'Demo Day Queue', description: 'Teams are queued', durationMinutes: 0, order: 6, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_queue' },
-  { id: 'demo_day_intro', title: 'Demo Day Intro', description: 'Introducing next team', durationMinutes: 2, order: 7, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_intro' },
-  { id: 'demo_day_presenting', title: 'Presenting', description: 'Team is pitching', durationMinutes: 3, order: 8, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_presenting' },
-  { id: 'demo_day_judging', title: 'Judging', description: 'Judges are scoring', durationMinutes: 2, order: 9, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_judging' },
-  { id: 'demo_day_reveal', title: 'Score Reveal', description: 'Reveal the score', durationMinutes: 2, order: 10, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_reveal' },
-  { id: 'finished', title: 'Finished', description: 'Camp is over', durationMinutes: 0, order: 11, type: 'normal', allowAdvance: false, projectorMode: 'standby' }
+  { id: 'setup', title: 'الإعداد — Setup', description: 'في انتظار المشاركين', durationMinutes: 0, order: 0, type: 'normal', allowAdvance: true, projectorMode: 'standby' },
+  { id: 'welcome', title: 'الترحيب — Welcome', description: 'مقدمة المعسكر', durationMinutes: 15, order: 1, type: 'normal', allowAdvance: true, projectorMode: 'intro' },
+  { id: 'ideation', title: 'توليد الأفكار — Ideation', description: 'مرحلة توليد الأفكار', durationMinutes: 45, order: 2, missionId: 'mission_ideation', type: 'normal', allowAdvance: true, projectorMode: 'timer' },
+  { id: 'build', title: 'بناء الـ MVP — Build MVP', description: 'مرحلة البناء الأساسية', durationMinutes: 120, order: 3, missionId: 'mission_build', type: 'normal', allowAdvance: true, projectorMode: 'timer' },
+  { id: 'checkpoint', title: 'نقطة التحقق — Checkpoint', description: 'مراجعة المرشد (Mentor)', durationMinutes: 30, order: 4, type: 'normal', allowAdvance: true, projectorMode: 'timer' },
+  { id: 'pitch_prep', title: 'تجهيز العرض — Pitch Prep', description: 'الاستعداد ليوم العروض', durationMinutes: 30, order: 5, missionId: 'mission_pitch', type: 'normal', allowAdvance: true, projectorMode: 'timer' },
+  { id: 'demo_day_queue', title: 'يوم العروض — Demo Day', description: 'اصطفاف الفرق', durationMinutes: 0, order: 6, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_queue' },
+  { id: 'demo_day_intro', title: 'مقدمة العرض — Intro', description: 'تقديم الفريق التالي', durationMinutes: 2, order: 7, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_intro' },
+  { id: 'demo_day_presenting', title: 'العرض — Presenting', description: 'الفريق يعرض مشروعه', durationMinutes: 3, order: 8, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_presenting' },
+  { id: 'demo_day_judging', title: 'التحكيم — Judging', description: 'المحكّمون يقيّمون', durationMinutes: 2, order: 9, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_judging' },
+  { id: 'demo_day_reveal', title: 'كشف النتيجة — Reveal Score', description: 'إظهار النتيجة', durationMinutes: 2, order: 10, type: 'demo_day', allowAdvance: true, projectorMode: 'demo_reveal' },
+  { id: 'finished', title: 'النهاية — Finished', description: 'انتهى المعسكر', durationMinutes: 0, order: 11, type: 'normal', allowAdvance: false, projectorMode: 'standby' }
 ];
 
 export function useCampEngine() {

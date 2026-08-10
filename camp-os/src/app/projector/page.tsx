@@ -34,7 +34,7 @@ export default function ProjectorScreen() {
   const derivedTotalScore = activeTeamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
   const maxPossibleScore = activeTeamScores.length > 0 ? activeTeamScores.length * 50 : 50;
 
-  if (!isLoaded || !globalState) return <div className={styles.loading}>Loading...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.loading}>جاري التحميل...</div>;
 
   const renderTimer = () => {
     if (!isTimerRunning && !isBreak) return null;
@@ -46,7 +46,7 @@ export default function ProjectorScreen() {
     if (isBreak) {
       return (
         <div className={styles.projectorTimer}>
-          <span className={styles.timerValue}>PAUSED</span>
+          <span className={styles.timerValue}>متوقف مؤقتًا</span>
         </div>
       );
     }
@@ -62,8 +62,8 @@ export default function ProjectorScreen() {
     if (isBreak) {
       return (
         <motion.div key="break" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
-          <h1 className={styles.glitchText}>BREAK TIME</h1>
-          <h2 className={styles.subtitle}>REST AND RECHARGE</h2>
+          <h1 className={styles.glitchText}>وقت الاستراحة</h1>
+          <h2 className={styles.subtitle}>خذ قسطًا من الراحة</h2>
           {renderTimer()}
           {globalState.announcement && (
             <div className={styles.announcementBox}>{globalState.announcement}</div>
@@ -76,15 +76,15 @@ export default function ProjectorScreen() {
       const activeTeam = teams.find(t => t.id === globalState.activeDemoTeamId);
       return (
         <motion.div key="demoday" className={styles.centerBox} {...variants}>
-          <h1 className={styles.fireText}>🔥 DEMO DAY 🔥</h1>
+          <h1 className={styles.fireText}>🔥 يوم العروض 🔥</h1>
           {activeTeam && (
             <div className={styles.activeTeamBox}>
               <h2 className={styles.upNext}>
-                {currentRoSPhase.id === 'demo_day_queue' && 'WAITING...'}
-                {currentRoSPhase.id === 'demo_day_intro' && 'UP NEXT'}
-                {currentRoSPhase.id === 'demo_day_presenting' && 'PRESENTING NOW'}
-                {currentRoSPhase.id === 'demo_day_judging' && 'JUDGES SCORING...'}
-                {currentRoSPhase.id === 'demo_day_reveal' && 'FINAL SCORE'}
+                {currentRoSPhase.id === 'demo_day_queue' && 'في الانتظار...'}
+                {currentRoSPhase.id === 'demo_day_intro' && 'التالي على المسرح'}
+                {currentRoSPhase.id === 'demo_day_presenting' && 'يعرض الآن'}
+                {currentRoSPhase.id === 'demo_day_judging' && 'جاري تقييم المحكّمين...'}
+                {currentRoSPhase.id === 'demo_day_reveal' && 'النتيجة النهائية'}
               </h2>
               <h1 className={styles.massiveTeamName}>{activeTeam.name}</h1>
               <p className={styles.projectIdea}>"{activeTeam.projectIdea}"</p>
@@ -111,7 +111,7 @@ export default function ProjectorScreen() {
         return (
           <motion.div key="welcome" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
             <h1 className={styles.glitchText}>FROM ZERO TO MVP</h1>
-            <h2 className={styles.subtitle}>ARE YOU READY?</h2>
+            <h2 className={styles.subtitle}>هل أنتم مستعدون؟</h2>
             {globalState.announcement && (
               <div className={styles.announcementBox}>{globalState.announcement}</div>
             )}
@@ -165,8 +165,8 @@ export default function ProjectorScreen() {
       case 'checkpoint':
         return (
           <motion.div key="checkpoint" className={styles.centerBox} {...variants}>
-            <h1 className={styles.alertText}>🚨 CHECKPOINT 🚨</h1>
-            <h2 className={styles.subtitle}>SUBMIT YOUR WORK FOR REVIEW</h2>
+            <h1 className={styles.alertText}>🚨 نقطة التحقق 🚨</h1>
+            <h2 className={styles.subtitle}>أرسل عملك للمراجعة الآن</h2>
             {renderTimer()}
             <div className={styles.checkpointGrid}>
                {teams.map(team => (
@@ -182,13 +182,13 @@ export default function ProjectorScreen() {
         // For MVP finished screen, we'll just display a generic "Finished" if we can't fetch all scores.
         return (
           <motion.div key="finished" className={styles.centerBox} {...variants}>
-            <h1 className={styles.glitchText}>🏆 DEMO DAY CONCLUDED</h1>
-            <h2 className={styles.subtitle}>GREAT JOB EVERYONE</h2>
+            <h1 className={styles.glitchText}>🏆 انتهى يوم العروض</h1>
+            <h2 className={styles.subtitle}>عمل رائع للجميع</h2>
           </motion.div>
         );
 
       default:
-        return <div>Unknown Phase</div>;
+        return <div>مرحلة غير معروفة</div>;
     }
   };
 

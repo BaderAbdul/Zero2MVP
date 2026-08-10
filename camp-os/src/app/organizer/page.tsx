@@ -24,10 +24,10 @@ export default function OrganizerMissionControl() {
   const [confirmPhaseId, setConfirmPhaseId] = useState<string | null>(null);
   const [confirmLifecycle, setConfirmLifecycle] = useState<'waiting_room' | 'live' | null>(null);
 
-  if (!isLoaded || !globalState) return <div>Loading...</div>;
+  if (!isLoaded || !globalState) return <div>جاري التحميل...</div>;
 
   if (currentUser?.role !== 'organizer') {
-    return <div className={styles.error}>Unauthorized. Please login as Organizer via <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ المنظّم عبر <a href="/login">/login</a>.</div>;
   }
 
   // --- Camp Status Actions ---
@@ -50,10 +50,10 @@ export default function OrganizerMissionControl() {
   const handleDeleteTeam = async (teamId: string) => {
     const memberCount = users.filter(u => u.teamId === teamId).length;
     if (memberCount > 0) {
-      alert("Cannot delete a team that has members assigned.");
+      alert("لا يمكن حذف فريق يحتوي على مشاركين.");
       return;
     }
-    if (window.confirm("Are you sure you want to delete this empty team?")) {
+    if (window.confirm("هل أنت متأكد من حذف هذا الفريق؟")) {
       await provider.deleteTeam(teamId);
     }
   };
@@ -155,46 +155,46 @@ export default function OrganizerMissionControl() {
         {confirmLifecycle === 'waiting_room' && (
           <div className={styles.modalOverlay}>
             <div className={styles.modalContent}>
-              <h3>Confirm Camp State Change</h3>
-              <p>You are about to OPEN CAMP.</p>
-              <p>Current: <strong>SETUP</strong></p>
-              <p>New: <strong>WAITING ROOM</strong></p>
-              <p>Participants will be able to join their teams using join codes. The projector and all connected screens will reflect this change.</p>
+              <h3>تأكيد تغيير حالة المعسكر</h3>
+              <p>أنت على وشك فتح المعسكر (Open Camp).</p>
+              <p>الحالي: <strong>الإعداد — SETUP</strong></p>
+              <p>الجديد: <strong>غرفة الانتظار — WAITING ROOM</strong></p>
+              <p>سيتمكن المشاركون من الانضمام إلى فرقهم باستخدام رموز الانضمام. شاشة العرض (Projector) ستعكس هذا التغيير.</p>
               <div className={styles.modalActions}>
-                <button onClick={() => setConfirmLifecycle(null)} className={styles.cancelBtn}>Cancel</button>
-                <button onClick={handleOpenWaitingRoom} className={styles.primaryBtnWarning}>Confirm Open</button>
+                <button onClick={() => setConfirmLifecycle(null)} className={styles.cancelBtn}>إلغاء</button>
+                <button onClick={handleOpenWaitingRoom} className={styles.primaryBtnWarning}>تأكيد الفتح</button>
               </div>
             </div>
           </div>
         )}
         <div className={styles.setupCard}>
-          <h1>Camp Setup</h1>
-          <p>Create teams and configure the environment before opening the doors.</p>
+          <h1>الإعداد — Setup</h1>
+          <p>قم بإنشاء الفرق وتجهيز البيئة قبل فتح الأبواب.</p>
           
           <form onSubmit={handleCreateTeam} className={styles.setupForm}>
             <input 
               value={newTeamName} 
               onChange={e => setNewTeamName(e.target.value)} 
-              placeholder="New Team Name" 
+              placeholder="اسم الفريق الجديد" 
               className={styles.input}
             />
-            <button type="submit" className={styles.primaryBtn} disabled={!newTeamName.trim()}>Add Team</button>
+            <button type="submit" className={styles.primaryBtn} disabled={!newTeamName.trim()}>إضافة فريق</button>
           </form>
 
           <table className={styles.setupTable}>
             <thead>
               <tr>
-                <th>Team Name</th>
-                <th>Join Code</th>
-                <th>Members</th>
-                <th>Action</th>
+                <th>اسم الفريق</th>
+                <th>رمز الانضمام</th>
+                <th>الأعضاء</th>
+                <th>إجراء</th>
               </tr>
             </thead>
             <tbody>
               {teams.length === 0 && (
                 <tr>
                   <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-                    No teams created yet. Add your first team above.
+                    لم يتم إنشاء أي فريق بعد. أضف فريقك الأول أعلاه.
                   </td>
                 </tr>
               )}
@@ -211,7 +211,7 @@ export default function OrganizerMissionControl() {
                         disabled={members > 0}
                         className={styles.deleteBtn}
                       >
-                        Delete
+                        حذف
                       </button>
                     </td>
                   </tr>
@@ -222,7 +222,7 @@ export default function OrganizerMissionControl() {
 
           <div className={styles.setupActions}>
             <button onClick={() => setConfirmLifecycle('waiting_room')} className={styles.massivePrimaryBtn}>
-              OPEN CAMP (Waiting Room)
+              فتح المعسكر (غرفة الانتظار)
             </button>
           </div>
         </div>
@@ -237,46 +237,46 @@ export default function OrganizerMissionControl() {
         {confirmLifecycle === 'live' && (
           <div className={styles.modalOverlay}>
             <div className={styles.modalContent}>
-              <h3>Confirm Camp State Change</h3>
-              <p>You are about to START LIVE CAMP.</p>
-              <p>Current: <strong>WAITING ROOM</strong></p>
-              <p>New: <strong>LIVE (Welcome Phase)</strong></p>
-              <p>The bootcamp officially begins. Participants will see their dashboards and the projector will show the welcome screen. This affects all connected screens.</p>
+              <h3>تأكيد تغيير حالة المعسكر</h3>
+              <p>أنت على وشك بدء المعسكر (Start Live Camp).</p>
+              <p>الحالي: <strong>غرفة الانتظار — WAITING ROOM</strong></p>
+              <p>الجديد: <strong>مباشر — LIVE (Welcome Phase)</strong></p>
+              <p>المعسكر يبدأ رسميًا. سيشاهد المشاركون لوحة المعلومات الخاصة بهم، وستعرض شاشة العرض شاشة الترحيب. هذا التغيير سينعكس على جميع الشاشات.</p>
               <div className={styles.modalActions}>
-                <button onClick={() => setConfirmLifecycle(null)} className={styles.cancelBtn}>Cancel</button>
-                <button onClick={handleStartLiveCamp} className={styles.primaryBtnWarning}>Confirm Start</button>
+                <button onClick={() => setConfirmLifecycle(null)} className={styles.cancelBtn}>إلغاء</button>
+                <button onClick={handleStartLiveCamp} className={styles.primaryBtnWarning}>تأكيد البدء</button>
               </div>
             </div>
           </div>
         )}
         <div className={styles.setupCard}>
-          <h1>Camp is Open!</h1>
-          <p className={styles.pulseText}>Participants can now join using their 6-character Team Codes.</p>
+          <h1>المعسكر مفتوح!</h1>
+          <p className={styles.pulseText}>يمكن للمشاركين الآن الانضمام باستخدام رموز الانضمام (Join Code) المكونة من 6 أحرف.</p>
           
           <div className={styles.statsGrid}>
             <div className={styles.statBox}>
               <span className={styles.statValue}>{participantsWithTeamCount} / {participantsCount}</span>
-              <span className={styles.statLabel}>Participants Assigned</span>
+              <span className={styles.statLabel}>المشاركون المنضمون</span>
             </div>
             <div className={styles.statBox}>
               <span className={styles.statValue}>{teams.length}</span>
-              <span className={styles.statLabel}>Total Teams</span>
+              <span className={styles.statLabel}>إجمالي الفرق</span>
             </div>
           </div>
 
           <table className={styles.setupTable}>
             <thead>
               <tr>
-                <th>Team Name</th>
-                <th>Join Code</th>
-                <th>Members Assigned</th>
+                <th>اسم الفريق</th>
+                <th>رمز الانضمام</th>
+                <th>الأعضاء</th>
               </tr>
             </thead>
             <tbody>
               {teams.length === 0 && (
                 <tr>
                   <td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
-                    No teams available.
+                    لا توجد فرق.
                   </td>
                 </tr>
               )}
@@ -292,7 +292,7 @@ export default function OrganizerMissionControl() {
 
           <div className={styles.setupActions}>
             <button onClick={() => setConfirmLifecycle('live')} className={styles.massivePrimaryBtn}>
-              START LIVE CAMP
+              بدء المعسكر — START LIVE CAMP
             </button>
           </div>
         </div>
@@ -306,13 +306,13 @@ export default function OrganizerMissionControl() {
       {confirmPhaseId && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>
-            <h3>Confirm Phase Change</h3>
-            <p>You are jumping out of sequence.</p>
-            <p>Current: <strong>{currentRoSPhase.title}</strong></p>
-            <p>Next: <strong>{RUN_OF_SHOW.find(p => p.id === confirmPhaseId)?.title}</strong></p>
+            <h3>تأكيد تغيير المرحلة</h3>
+            <p>أنت تقوم بالانتقال خارج التسلسل.</p>
+            <p>الحالي: <strong>{currentRoSPhase.title}</strong></p>
+            <p>التالي: <strong>{RUN_OF_SHOW.find(p => p.id === confirmPhaseId)?.title}</strong></p>
             <div className={styles.modalActions}>
-              <button onClick={() => setConfirmPhaseId(null)} className={styles.cancelBtn}>Cancel</button>
-              <button onClick={() => executePhaseChange(confirmPhaseId)} className={styles.primaryBtnWarning}>Confirm Jump</button>
+              <button onClick={() => setConfirmPhaseId(null)} className={styles.cancelBtn}>إلغاء</button>
+              <button onClick={() => executePhaseChange(confirmPhaseId)} className={styles.primaryBtnWarning}>تأكيد الانتقال</button>
             </div>
           </div>
         </div>
@@ -320,16 +320,16 @@ export default function OrganizerMissionControl() {
 
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <h1>Mission Control</h1>
-          <span className={styles.liveIndicator}>🔴 LIVE</span>
+          <h1>لوحة التحكم — Mission Control</h1>
+          <span className={styles.liveIndicator}>🔴 مباشر</span>
         </div>
         <button 
           onClick={toggleBreak} 
           className={`${styles.breakToggle} ${isBreak ? styles.breakActive : ''}`}
         >
           {isBreak 
-            ? `▶ Resume Camp → ${RUN_OF_SHOW.find(p => p.id === globalState.preBreakPhase)?.title || 'Setup'}` 
-            : '⏸ Start Break Time'}
+            ? `▶ استئناف المعسكر → ${RUN_OF_SHOW.find(p => p.id === globalState.preBreakPhase)?.title || 'Setup'}` 
+            : '⏸ بدء الاستراحة'}
         </button>
       </header>
 
@@ -358,7 +358,7 @@ export default function OrganizerMissionControl() {
         {/* CENTER STAGE: CURRENT PHASE ACTION */}
         <div className={styles.primaryColumn}>
           <section className={styles.actionCard}>
-            <p className={styles.subLabel}>CURRENT PHASE</p>
+            <p className={styles.subLabel}>المرحلة الحالية</p>
             <h2 className={styles.massivePhaseText}>
               {currentRoSPhase.title.toUpperCase()}
             </h2>
@@ -370,13 +370,13 @@ export default function OrganizerMissionControl() {
                 disabled={advanceCooldown}
                 className={styles.advanceButton}
               >
-                {justAdvancedTo ? `✓ ${justAdvancedTo.toUpperCase()} STARTED` : `ADVANCE TO NEXT PHASE ➔`}
+                {justAdvancedTo ? `✓ بدأت ${justAdvancedTo.toUpperCase()}` : `الانتقال للمرحلة التالية ➔`}
               </button>
             )}
 
             {currentRoSPhase.type === 'demo_day' && (
               <div className={styles.demoDayControls}>
-                <p className={styles.subLabel}>DEMO DAY ENGINE</p>
+                <p className={styles.subLabel}>يوم العروض — Demo Day</p>
                 <div className={styles.demoDayPhases}>
                   {RUN_OF_SHOW.filter(p => p.type === 'demo_day').map(p => (
                     <button
@@ -391,13 +391,13 @@ export default function OrganizerMissionControl() {
                 
                 <div className={styles.queueGrid}>
                   <div className={styles.teamSelector}>
-                    <label>Active Team on Stage:</label>
+                    <label>الفريق الحالي على المسرح:</label>
                     <select 
                       value={globalState.activeDemoTeamId || ''} 
                       onChange={(e) => handleSelectActiveTeam(e.target.value)}
                       className={styles.select}
                     >
-                      <option value="">-- None --</option>
+                      <option value="">-- لا يوجد --</option>
                       {teams.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
@@ -405,13 +405,13 @@ export default function OrganizerMissionControl() {
                   </div>
 
                   <div className={styles.teamSelector}>
-                    <label>Up Next Team:</label>
+                    <label>الفريق التالي:</label>
                     <select 
                       value={globalState.nextDemoTeamId || ''} 
                       onChange={(e) => handleSelectNextTeam(e.target.value)}
                       className={styles.select}
                     >
-                      <option value="">-- None --</option>
+                      <option value="">-- لا يوجد --</option>
                       {teams.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
@@ -425,16 +425,16 @@ export default function OrganizerMissionControl() {
                     className={styles.secondaryBtn}
                     disabled={!globalState.nextDemoTeamId || !teams.some(t => t.id === globalState.nextDemoTeamId)}
                   >
-                    Advance Queue (Next ➔ Stage)
+                    التالي إلى المسرح (Advance Queue)
                   </button>
                   {(!globalState.nextDemoTeamId || !teams.some(t => t.id === globalState.nextDemoTeamId)) && (
-                    <span style={{ fontSize: '0.85rem', color: '#ef4444' }}>Select an Up Next team before advancing.</span>
+                    <span style={{ fontSize: '0.85rem', color: '#ef4444' }}>حدد الفريق التالي قبل التقديم.</span>
                   )}
                 </div>
 
                 {currentRoSPhase.id === 'demo_day_judging' && (
                   <div className={styles.judgeStatusAlert}>
-                    <strong>Judges Submitted:</strong> {submittedJudges} / {totalJudges}
+                    <strong>المحكّمون الذين أرسلوا:</strong> {submittedJudges} / {totalJudges}
                   </div>
                 )}
 
@@ -443,7 +443,7 @@ export default function OrganizerMissionControl() {
                   disabled={currentRoSPhase.id !== 'demo_day_reveal' || globalState.revealScores}
                   className={styles.revealButton}
                 >
-                  {globalState.revealScores ? 'SCORES REVEALED ✓' : 'TRIGGER SCORE REVEAL ANIMATION'}
+                  {globalState.revealScores ? 'تم كشف النتيجة ✓' : 'كشف النتيجة — Reveal Score'}
                 </button>
               </div>
             )}
@@ -453,7 +453,7 @@ export default function OrganizerMissionControl() {
         {/* SIDE PANEL: SECONDARY CONTROLS */}
         <div className={styles.sideColumn}>
           <section className={styles.sideCard}>
-            <h3>Announcements</h3>
+            <h3>الإعلانات</h3>
             {globalState.announcement && (
               <div className={styles.currentAnnouncement}>
                 <span className={styles.announcementText}>{globalState.announcement}</span>
@@ -463,28 +463,28 @@ export default function OrganizerMissionControl() {
             <div className={styles.inputGroup}>
               <input 
                 type="text" 
-                placeholder="Broadcast message..." 
+                placeholder="رسالة البث..." 
                 value={announcementText}
                 onChange={e => setAnnouncementText(e.target.value)}
                 className={styles.input}
               />
-              <button onClick={handleSetAnnouncement} className={styles.sendBtn}>Send</button>
+              <button onClick={handleSetAnnouncement} className={styles.sendBtn}>إرسال</button>
             </div>
           </section>
           
           <section className={styles.sideCard}>
-             <h3>Live Counters</h3>
+             <h3>العدادات المباشرة</h3>
              <ul className={styles.countersList}>
-               <li><strong>Assigned Participants:</strong> {participantsWithTeamCount}/{participantsCount}</li>
-               <li><strong>Teams Ready:</strong> {teams.length}</li>
+               <li><strong>المشاركون:</strong> {participantsWithTeamCount}/{participantsCount}</li>
+               <li><strong>الفرق الجاهزة:</strong> {teams.length}</li>
                {currentRoSPhase.type === 'demo_day' && (
-                 <li><strong>Judges Submitted (Active):</strong> {submittedJudges}/{totalJudges}</li>
+                 <li><strong>المحكّمون (الفريق الحالي):</strong> {submittedJudges}/{totalJudges}</li>
                )}
              </ul>
           </section>
 
           <section className={styles.sideCard}>
-            <h3>Team Overview</h3>
+            <h3>نظرة عامة على الفرق</h3>
             <ul className={styles.teamList}>
               {teams.map(t => (
                 <li key={t.id} className={styles.teamListItem}>

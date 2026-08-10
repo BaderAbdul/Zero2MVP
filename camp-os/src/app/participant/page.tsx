@@ -15,10 +15,10 @@ export default function ParticipantDashboard() {
   const [isJoining, setIsJoining] = React.useState(false);
 
   if (!currentUser || currentUser.role !== 'participant') {
-    return <div className={styles.error}>Unauthorized. Please login as Participant via <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ مشارك عبر <a href="/login">/login</a>.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.loading}>Loading...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.loading}>جاري التحميل...</div>;
 
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +29,7 @@ export default function ParticipantDashboard() {
       await provider.joinTeam(joinCodeInput.trim().toUpperCase(), currentUser.id);
       // Success, context will automatically update `teamId` and re-render.
     } catch (err: any) {
-      setJoinError(err.message || "Failed to join team.");
+      setJoinError(err.message || "فشل الانضمام إلى الفريق.");
       setIsJoining(false);
     }
   };
@@ -38,19 +38,19 @@ export default function ParticipantDashboard() {
     return (
       <div className={styles.waitingRoom}>
         <div className={styles.waitingCard}>
-          <h1>Join Your Team</h1>
-          <p>Please enter the 6-character join code provided by your organizer.</p>
+          <h1>الانضمام إلى فريقك</h1>
+          <p>الرجاء إدخال رمز الانضمام المكون من 6 أحرف المقدم من المنظّم.</p>
           <form onSubmit={handleJoinTeam} className={styles.joinForm}>
             <input 
               type="text" 
-              placeholder="e.g. MVP-7K4Q or 7K4Q9X" 
+              placeholder="مثال: MVP-7K4Q أو 7K4Q9X" 
               value={joinCodeInput} 
               onChange={e => setJoinCodeInput(e.target.value)}
               className={styles.joinInput}
               disabled={isJoining}
             />
             <button type="submit" className={styles.joinBtn} disabled={isJoining || !joinCodeInput.trim()}>
-              {isJoining ? 'Joining...' : 'Join Team'}
+              {isJoining ? 'جاري الانضمام...' : 'انضمام للفريق'}
             </button>
           </form>
           {joinError && <p className={styles.errorText}>{joinError}</p>}
@@ -98,7 +98,7 @@ export default function ParticipantDashboard() {
         })}
         {allCompleted && (
           <div className={styles.statusBannerApproved}>
-            ✅ Mission Accomplished!
+            ✅ تمت المهمة بنجاح!
           </div>
         )}
       </div>
@@ -109,8 +109,8 @@ export default function ParticipantDashboard() {
     if (isBreak) {
       return (
         <div className={styles.missionCenter}>
-          <h2 className={styles.missionTitle}>Break Time ☕</h2>
-          <p className={styles.missionDesc}>Take a rest. The bootcamp is paused.</p>
+          <h2 className={styles.missionTitle}>وقت الاستراحة ☕</h2>
+          <p className={styles.missionDesc}>خذ قسطًا من الراحة. المعسكر متوقف مؤقتًا.</p>
         </div>
       );
     }
@@ -119,15 +119,15 @@ export default function ParticipantDashboard() {
       if (activeDemoTeam?.id === team.id) {
         return (
           <div className={styles.missionActiveAlert}>
-            <h2 className={styles.missionTitlePulse}>IT IS YOUR TURN! 🎤</h2>
-            <p className={styles.missionDesc}>Head to the stage now.</p>
+            <h2 className={styles.missionTitlePulse}>إنه دورك! 🎤</h2>
+            <p className={styles.missionDesc}>توجه إلى المسرح الآن.</p>
           </div>
         );
       } else {
         return (
           <div className={styles.missionCenter}>
-            <h2 className={styles.missionTitle}>Demo Day</h2>
-            <p className={styles.missionDesc}>Watch the projector and cheer for your peers.</p>
+            <h2 className={styles.missionTitle}>يوم العروض — Demo Day</h2>
+            <p className={styles.missionDesc}>تابع شاشة العرض (Projector) وشجّع زملائك.</p>
           </div>
         );
       }
@@ -136,21 +136,21 @@ export default function ParticipantDashboard() {
     if (currentRoSPhase.id === 'checkpoint') {
       return (
         <div className={styles.missionCenter}>
-          <h2 className={styles.missionTitle}>Checkpoint 🚨</h2>
+          <h2 className={styles.missionTitle}>نقطة التحقق — Checkpoint 🚨</h2>
           {team.checkpointStatus === 'idle' ? (
             <div className={styles.missionActive}>
-              <p className={styles.missionDesc}>You must submit your work for review now.</p>
+              <p className={styles.missionDesc}>يجب عليك إرسال عملك للمراجعة الآن.</p>
               <button onClick={handleRequestCheckpoint} className={styles.primaryBtnWarning}>
-                Request Review Now
+                طلب مراجعة الآن
               </button>
             </div>
           ) : team.checkpointStatus === 'pending' ? (
             <div className={styles.statusBannerPending}>
-              ⏳ Mentor is reviewing your checkpoint...
+              ⏳ المُرشِد يقوم بمراجعة نقطة التحقق...
             </div>
           ) : (
             <div className={styles.statusBannerApproved}>
-              ✅ Checkpoint passed! Great job.
+              ✅ تم اجتياز نقطة التحقق! عمل رائع.
             </div>
           )}
         </div>
@@ -160,7 +160,7 @@ export default function ParticipantDashboard() {
     if (currentMission) {
       return (
         <div className={styles.missionActive}>
-          <p className={styles.subLabel}>CURRENT MISSION</p>
+          <p className={styles.subLabel}>المهمة الحالية</p>
           <h2 className={styles.missionTitleActive}>{currentMission.title}</h2>
           <p className={styles.missionDesc}>{currentMission.description}</p>
           
@@ -172,19 +172,19 @@ export default function ParticipantDashboard() {
               disabled={team.healthStatus === 'red'}
               className={styles.secondaryBtnWarning}
             >
-              {team.healthStatus === 'red' ? 'Help Requested 🚨' : 'Request Mentor Help 🆘'}
+              {team.healthStatus === 'red' ? 'تم طلب المساعدة 🚨' : 'طلب مساعدة المُرشِد 🆘'}
             </button>
             
             {team.checkpointStatus === 'idle' && (
               <button onClick={handleRequestCheckpoint} className={styles.secondaryBtn}>
-                Submit for Early Review
+                تسليم للمراجعة المبكرة
               </button>
             )}
           </div>
           
           {team.checkpointStatus === 'pending' && (
             <div className={styles.statusBannerPending}>
-              ⏳ Checkpoint requested. Waiting for a mentor...
+              ⏳ تم طلب المراجعة. في انتظار المُرشِد...
             </div>
           )}
         </div>
@@ -204,7 +204,7 @@ export default function ParticipantDashboard() {
     <div className={styles.container}>
       {globalState.announcement && (
         <div className={styles.announcementBanner}>
-          <strong>Broadcast:</strong> {globalState.announcement}
+          <strong>إعلان:</strong> {globalState.announcement}
         </div>
       )}
 

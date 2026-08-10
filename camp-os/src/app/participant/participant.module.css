@@ -233,7 +233,7 @@
   flex-direction: column;
   gap: 1rem;
   margin: 2rem 0;
-  text-align: left;
+  text-align: start;
 }
 
 .taskItem {

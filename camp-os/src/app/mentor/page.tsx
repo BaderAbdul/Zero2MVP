@@ -35,7 +35,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
           <h2>{team.name}</h2>
           <span className={styles.stageBadge}>{team.currentStage}</span>
         </div>
-        <div className={styles.healthIndicator} title={`Health: ${team.healthStatus}`} />
+        <div className={styles.healthIndicator} title={`حالة الفريق: ${team.healthStatus}`} />
       </div>
       
       <p className={styles.idea}>"{team.projectIdea}"</p>
@@ -53,7 +53,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
       <div className={styles.checkpointSection}>
         {team.checkpointStatus !== 'idle' && (
           <span className={`${styles.statusLabel} ${styles[`status-${team.checkpointStatus}`]}`}>
-            Checkpoint: {team.checkpointStatus.toUpperCase()}
+            نقطة التحقق: {team.checkpointStatus.toUpperCase()}
           </span>
         )}
         
@@ -62,16 +62,16 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
             onClick={handleApproveCheckpoint}
             className={styles.approveButton}
           >
-            Approve Checkpoint
+            قبول نقطة التحقق (Approve)
           </button>
         )}
         
         {openInterventions.length > 0 && (
           <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>🚨 Help Requested</p>
+            <p className={styles.interventionsLabel}>🚨 طلب مساعدة</p>
             {openInterventions.map(i => (
               <button key={i.id} onClick={() => handleClaim(i.id)} className={styles.claimBtn}>
-                Claim Intervention
+                استلام الطلب (Claim)
               </button>
             ))}
           </div>
@@ -79,10 +79,10 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
 
         {claimedInterventions.length > 0 && (
           <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>🛠️ You are helping this team</p>
+            <p className={styles.interventionsLabel}>🛠️ أنت تساعد هذا الفريق</p>
             {claimedInterventions.map(i => (
               <button key={i.id} onClick={() => handleResolve(i.id)} className={styles.resolveBtn}>
-                Mark Resolved
+                تحديد كـ محلول (Resolve)
               </button>
             ))}
           </div>
@@ -90,7 +90,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
 
         {othersClaimedInterventions.length > 0 && (
           <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>👀 Another mentor is helping</p>
+            <p className={styles.interventionsLabel}>👀 مُرشِد آخر يقوم بالمساعدة</p>
           </div>
         )}
         
@@ -109,7 +109,7 @@ export default function MentorDashboard() {
   const teams = useTeams();
 
   if (!currentUser || currentUser.role !== 'mentor') {
-    return <div className={styles.error}>Unauthorized. Please login as Mentor via <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ المُرشِد عبر <a href="/login">/login</a>.</div>;
   }
 
   const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
@@ -118,20 +118,20 @@ export default function MentorDashboard() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>Team Intervention Center</h1>
+        <h1>مركز تدخل الفرق — Intervention Center</h1>
       </header>
 
       <div className={styles.triageLayout}>
         {/* LANE 1: ACTION REQUIRED */}
         <section className={styles.lane}>
           <h2 className={styles.laneTitleUrgent}>
-            🚨 Action Required <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
+            🚨 يتطلب التدخل <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
           </h2>
           <div className={styles.urgentGrid}>
             {actionRequiredTeams.length > 0 ? (
               actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} />)
             ) : (
-              <div className={styles.emptyLane}>✅ All caught up! No teams need immediate help.</div>
+              <div className={styles.emptyLane}>✅ كل شيء على ما يرام! لا توجد فرق تحتاج للمساعدة.</div>
             )}
           </div>
         </section>
@@ -139,7 +139,7 @@ export default function MentorDashboard() {
         {/* LANE 2: MONITORING */}
         <section className={styles.lane}>
           <h2 className={styles.laneTitle}>
-            ✅ Monitoring <span className={styles.countBadge}>{monitoringTeams.length}</span>
+            ✅ المراقبة <span className={styles.countBadge}>{monitoringTeams.length}</span>
           </h2>
           <div className={styles.monitoringGrid}>
             {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} />)}
