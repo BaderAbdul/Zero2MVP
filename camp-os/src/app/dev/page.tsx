@@ -5,11 +5,18 @@ import { useCampContext } from '@/lib/services/CampContext';
 import { UserRole } from '@/lib/services/types';
 import styles from './dev.module.css';
 import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
 export default function DevControlPanel() {
-  const { provider, currentUser, setCurrentUser } = useCampContext();
-
   const isFirebase = process.env.NEXT_PUBLIC_DATA_PROVIDER === 'firebase';
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Hard disable this route in production or when using Firebase
+  if (isFirebase || isProduction) {
+    notFound();
+  }
+
+  const { provider, currentUser, setCurrentUser } = useCampContext();
 
   const handleSimulateLogin = async (role: UserRole, teamId?: string) => {
     if (isFirebase) {

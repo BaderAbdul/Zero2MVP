@@ -28,7 +28,7 @@ export default function JudgeExperience() {
   }, [activeTeam?.id]);
 
   if (!currentUser || currentUser.role !== 'judge') {
-    return <div className={styles.error}>Unauthorized. Please login as Judge via /dev.</div>;
+    return <div className={styles.error}>Unauthorized. Please login as Judge via <a href="/login">/login</a>.</div>;
   }
 
   if (!isLoaded || !globalState) return <div className={styles.container}>Loading...</div>;

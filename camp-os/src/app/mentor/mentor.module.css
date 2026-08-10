@@ -20,9 +20,17 @@
 }
 
 .triageLayout {
-  display: flex;
-  flex-direction: column;
-  gap: 4rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .triageLayout {
+    grid-template-columns: 1fr;
+    gap: 4rem;
+  }
 }
 
 .laneTitle, .laneTitleUrgent {
@@ -66,13 +74,13 @@
 
 .urgentGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1.5rem;
 }
 
 .monitoringGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   opacity: 0.8;
 }

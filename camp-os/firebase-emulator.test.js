@@ -98,6 +98,9 @@ async function runTests() {
     pass('Mentor cannot promote themselves to organizer');
 
     // 5. Judge Submissions
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), 'camp_os/global_state'), { activeDemoTeamId: 'team-alpha' }, { merge: true });
+    });
     const scoreId = `team-alpha_judge-uid`;
     await assertSucceeds(setDoc(doc(judgeDb, 'demo_scores', scoreId), { teamId: 'team-alpha', judgeId: 'judge-uid', totalScore: 25 }));
     // Adversarial: Judge spoofing another judge

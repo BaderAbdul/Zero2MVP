@@ -94,7 +94,13 @@ service cloud.firestore {
         request.resource.data.status == 'open';
         
       allow update: if isRole('mentor') &&
-        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'mentorId', 'claimedAt', 'resolvedAt']);
+        request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'mentorId', 'claimedAt', 'resolvedAt']) &&
+        (
+          // Open -> Claimed
+          (resource.data.status == 'open' && request.resource.data.status == 'claimed' && request.resource.data.mentorId == request.auth.uid) ||
+          // Claimed -> Resolved
+          (resource.data.status == 'claimed' && request.resource.data.status == 'resolved' && resource.data.mentorId == request.auth.uid)
+        );
         
       allow write: if isRole('organizer');
     }
@@ -114,7 +120,8 @@ service cloud.firestore {
       // ID must be {teamId}_{judgeId} to prevent duplicates
       allow create, update: if isRole('judge') && 
         request.resource.data.judgeId == request.auth.uid &&
-        scoreId == (request.resource.data.teamId + '_' + request.auth.uid);
+        scoreId == (request.resource.data.teamId + '_' + request.auth.uid) &&
+        get(/databases/$(database)/documents/camp_os/global_state).data.get('activeDemoTeamId', null) == request.resource.data.teamId;
       
       allow write: if isRole('organizer');
     }

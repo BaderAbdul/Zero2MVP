@@ -22,11 +22,12 @@ export default function OrganizerMissionControl() {
   // New State for Day 1.0
   const [newTeamName, setNewTeamName] = useState('');
   const [confirmPhaseId, setConfirmPhaseId] = useState<string | null>(null);
+  const [confirmLifecycle, setConfirmLifecycle] = useState<'waiting_room' | 'live' | null>(null);
 
   if (!isLoaded || !globalState) return <div>Loading...</div>;
 
   if (currentUser?.role !== 'organizer') {
-    return <div className={styles.error}>Unauthorized. Please login as Organizer via /dev.</div>;
+    return <div className={styles.error}>Unauthorized. Please login as Organizer via <a href="/login">/login</a>.</div>;
   }
 
   // --- Camp Status Actions ---
@@ -132,6 +133,7 @@ export default function OrganizerMissionControl() {
   };
 
   const handleAdvanceDemoQueue = async () => {
+    if (!globalState.nextDemoTeamId || !teams.some(t => t.id === globalState.nextDemoTeamId)) return;
     await provider.updateGlobalState({
       activeDemoTeamId: globalState.nextDemoTeamId,
       nextDemoTeamId: null,
@@ -150,6 +152,21 @@ export default function OrganizerMissionControl() {
   if (globalState.campStatus === 'setup') {
     return (
       <div className={styles.container}>
+        {confirmLifecycle === 'waiting_room' && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <h3>Confirm Camp State Change</h3>
+              <p>You are about to OPEN CAMP.</p>
+              <p>Current: <strong>SETUP</strong></p>
+              <p>New: <strong>WAITING ROOM</strong></p>
+              <p>Participants will be able to join their teams using join codes. The projector and all connected screens will reflect this change.</p>
+              <div className={styles.modalActions}>
+                <button onClick={() => setConfirmLifecycle(null)} className={styles.cancelBtn}>Cancel</button>
+                <button onClick={handleOpenWaitingRoom} className={styles.primaryBtnWarning}>Confirm Open</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className={styles.setupCard}>
           <h1>Camp Setup</h1>
           <p>Create teams and configure the environment before opening the doors.</p>
@@ -174,6 +191,13 @@ export default function OrganizerMissionControl() {
               </tr>
             </thead>
             <tbody>
+              {teams.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                    No teams created yet. Add your first team above.
+                  </td>
+                </tr>
+              )}
               {teams.map(t => {
                 const members = users.filter(u => u.teamId === t.id).length;
                 return (
@@ -197,7 +221,7 @@ export default function OrganizerMissionControl() {
           </table>
 
           <div className={styles.setupActions}>
-            <button onClick={handleOpenWaitingRoom} className={styles.massivePrimaryBtn}>
+            <button onClick={() => setConfirmLifecycle('waiting_room')} className={styles.massivePrimaryBtn}>
               OPEN CAMP (Waiting Room)
             </button>
           </div>
@@ -210,6 +234,21 @@ export default function OrganizerMissionControl() {
   if (globalState.campStatus === 'waiting_room') {
     return (
       <div className={styles.container}>
+        {confirmLifecycle === 'live' && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalContent}>
+              <h3>Confirm Camp State Change</h3>
+              <p>You are about to START LIVE CAMP.</p>
+              <p>Current: <strong>WAITING ROOM</strong></p>
+              <p>New: <strong>LIVE (Welcome Phase)</strong></p>
+              <p>The bootcamp officially begins. Participants will see their dashboards and the projector will show the welcome screen. This affects all connected screens.</p>
+              <div className={styles.modalActions}>
+                <button onClick={() => setConfirmLifecycle(null)} className={styles.cancelBtn}>Cancel</button>
+                <button onClick={handleStartLiveCamp} className={styles.primaryBtnWarning}>Confirm Start</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className={styles.setupCard}>
           <h1>Camp is Open!</h1>
           <p className={styles.pulseText}>Participants can now join using their 6-character Team Codes.</p>
@@ -234,6 +273,13 @@ export default function OrganizerMissionControl() {
               </tr>
             </thead>
             <tbody>
+              {teams.length === 0 && (
+                <tr>
+                  <td colSpan={3} style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
+                    No teams available.
+                  </td>
+                </tr>
+              )}
               {teams.map(t => (
                 <tr key={t.id}>
                   <td>{t.name}</td>
@@ -245,7 +291,7 @@ export default function OrganizerMissionControl() {
           </table>
 
           <div className={styles.setupActions}>
-            <button onClick={handleStartLiveCamp} className={styles.massivePrimaryBtn}>
+            <button onClick={() => setConfirmLifecycle('live')} className={styles.massivePrimaryBtn}>
               START LIVE CAMP
             </button>
           </div>
@@ -373,10 +419,17 @@ export default function OrganizerMissionControl() {
                   </div>
                 </div>
                 
-                <div style={{ marginTop: '1rem', display: 'flex', gap: '1rem' }}>
-                  <button onClick={handleAdvanceDemoQueue} className={styles.secondaryBtn}>
+                <div style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  <button 
+                    onClick={handleAdvanceDemoQueue} 
+                    className={styles.secondaryBtn}
+                    disabled={!globalState.nextDemoTeamId || !teams.some(t => t.id === globalState.nextDemoTeamId)}
+                  >
                     Advance Queue (Next ➔ Stage)
                   </button>
+                  {(!globalState.nextDemoTeamId || !teams.some(t => t.id === globalState.nextDemoTeamId)) && (
+                    <span style={{ fontSize: '0.85rem', color: '#ef4444' }}>Select an Up Next team before advancing.</span>
+                  )}
                 </div>
 
                 {currentRoSPhase.id === 'demo_day_judging' && (

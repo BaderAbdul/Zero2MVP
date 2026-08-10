@@ -15,7 +15,7 @@ export default function ParticipantDashboard() {
   const [isJoining, setIsJoining] = React.useState(false);
 
   if (!currentUser || currentUser.role !== 'participant') {
-    return <div className={styles.error}>Unauthorized. Please login as Participant via /dev.</div>;
+    return <div className={styles.error}>Unauthorized. Please login as Participant via <a href="/login">/login</a>.</div>;
   }
 
   if (!isLoaded || !globalState) return <div className={styles.loading}>Loading...</div>;

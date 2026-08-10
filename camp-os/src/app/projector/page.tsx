@@ -16,22 +16,29 @@ export default function ProjectorScreen() {
   const { isLoaded, globalState, currentRoSPhase, isBreak, timeRemainingSeconds, isTimerRunning } = useCampEngine();
   const teams = useTeams();
 
-  // Derived scores logic
-  // The projector only subscribes to active team scores during demo day. 
-  // For the finished screen, it would technically need all scores, but for MVP let's assume it fetches active ones, 
-  // or we need a way to fetch all scores. For simplicity, since judges don't mutate demoDayTotalScore anymore, 
-  // we could just fetch all demo_scores if we want a leaderboard. 
-  // Actually, wait: `useDemoScores` takes a `teamId`. Let's just use it for the active team for now.
-  // We'll pass the activeDemoTeamId.
+  // Local seconds state for smooth live countdown on projector
+  const [displaySeconds, setDisplaySeconds] = React.useState(timeRemainingSeconds || 0);
+
+  React.useEffect(() => {
+    setDisplaySeconds(timeRemainingSeconds || 0);
+    if (!isTimerRunning) return;
+    
+    const interval = setInterval(() => {
+      setDisplaySeconds((prev) => (prev <= 0 ? 0 : prev - 1));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timeRemainingSeconds, isTimerRunning]);
+
   const activeTeamScores = useDemoScores(globalState?.activeDemoTeamId || undefined);
   const derivedTotalScore = activeTeamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
+  const maxPossibleScore = activeTeamScores.length > 0 ? activeTeamScores.length * 50 : 50;
 
   if (!isLoaded || !globalState) return <div className={styles.loading}>Loading...</div>;
 
   const renderTimer = () => {
     if (!isTimerRunning && !isBreak) return null;
     
-    const displaySeconds = timeRemainingSeconds;
     const m = Math.floor(displaySeconds / 60);
     const s = displaySeconds % 60;
     const formatted = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
@@ -89,7 +96,7 @@ export default function ProjectorScreen() {
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', bounce: 0.5 }}
                 >
-                  {derivedTotalScore} / 50
+                  {derivedTotalScore} / {maxPossibleScore}
                 </motion.h1>
               )}
             </div>

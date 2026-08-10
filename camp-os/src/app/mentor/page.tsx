@@ -109,7 +109,7 @@ export default function MentorDashboard() {
   const teams = useTeams();
 
   if (!currentUser || currentUser.role !== 'mentor') {
-    return <div className={styles.error}>Unauthorized. Please login as Mentor via /dev.</div>;
+    return <div className={styles.error}>Unauthorized. Please login as Mentor via <a href="/login">/login</a>.</div>;
   }
 
   const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
