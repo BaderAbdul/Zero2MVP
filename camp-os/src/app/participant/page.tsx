@@ -7,12 +7,7 @@ import { TaskItem, HelpCategory } from '@/lib/services/types';
 import styles from './participant.module.css';
 
 export default function SharedTeamWorkspace() {
-  const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const int = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(int);
-  }, []);
 
   const { provider, currentUser, setCurrentUser } = useCampContext();
   const { 

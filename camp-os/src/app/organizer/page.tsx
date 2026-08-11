@@ -13,12 +13,7 @@ type ActiveTab = 'camp_control' | 'people_teams';
 const SUPER_ADMIN_EMAIL = 'ebaderabdul@gmail.com';
 
 export default function OrganizerHub() {
-  const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const int = setInterval(() => setTick(t => t + 1), 1000);
-    return () => clearInterval(int);
-  }, []);
 
   const { provider, currentUser, setCurrentUser } = useCampContext();
   const { 

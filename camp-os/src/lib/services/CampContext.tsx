@@ -205,6 +205,7 @@ export function useDemoScores(teamId?: string) {
 
   useEffect(() => {
     if (!teamId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setScores([]);
       return;
     }

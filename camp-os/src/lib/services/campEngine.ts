@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useCampContext, useGlobalState, useTeam, useTeams } from './CampContext';
 import { Session, SessionType, TaskItem, GlobalState, Team, HelpCategory } from './types';
 
@@ -277,6 +278,23 @@ export function useCampEngine() {
   const team = useTeam(currentUser?.teamId);
   const teams = useTeams();
 
+  // Manage Date.now() safely to prevent hydration mismatches and impure render errors
+  const [now, setNow] = useState<number>(0);
+  
+  useEffect(() => {
+    // We only want to tick on the client, and we initialize safely inside the effect
+    const timeout = setTimeout(() => {
+      setNow(Date.now());
+    }, 0);
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
+  }, []);
+
   if (!globalState) {
     return { isLoaded: false };
   }
@@ -300,8 +318,9 @@ export function useCampEngine() {
   // Active Demo Team
   const activeDemoTeam = isDemoDay ? teams.find(t => t.id === globalState.activeDemoTeamId) : null;
 
-  // 2. Timer Calculation (Drift-Protected & Synchronized)
-  const now = Date.now();
+  // 2. Timer Calculation
+  const safeNow = now > 0 ? now : (globalState.timerStartTime || globalState.timerEndTime || 0);
+
   const timerMode = globalState.timerMode || activeSession.timerMode || 'countdown';
   const isTimerPaused = !!globalState.isTimerPaused || !!globalState.isCampPaused;
 
@@ -312,13 +331,13 @@ export function useCampEngine() {
     if (isTimerPaused && globalState.timerPausedRemainingMs !== undefined && globalState.timerPausedRemainingMs !== null) {
       timeRemainingSeconds = Math.max(0, Math.floor(globalState.timerPausedRemainingMs / 1000));
     } else if (globalState.timerEndTime) {
-      timeRemainingSeconds = Math.max(0, Math.floor((globalState.timerEndTime - now) / 1000));
+      timeRemainingSeconds = Math.max(0, Math.floor((globalState.timerEndTime - safeNow) / 1000));
     }
   } else if (timerMode === 'countup') {
     if (isTimerPaused && globalState.timerPausedAt && globalState.timerStartTime) {
       timeElapsedSeconds = Math.max(0, Math.floor((globalState.timerPausedAt - globalState.timerStartTime) / 1000));
     } else if (globalState.timerStartTime) {
-      timeElapsedSeconds = Math.max(0, Math.floor((now - globalState.timerStartTime) / 1000));
+      timeElapsedSeconds = Math.max(0, Math.floor((safeNow - globalState.timerStartTime) / 1000));
     }
   }
 
