@@ -1,159 +1,165 @@
 'use client';
 
 import React from 'react';
-import { useCampContext, useTeams, useTeamInterventions } from '@/lib/services/CampContext';
+import { useCampContext, useTeams, useUsers } from '@/lib/services/CampContext';
+import { useCampEngine } from '@/lib/services/campEngine';
+import GlobalTimer from '@/components/GlobalTimer';
 import styles from './mentor.module.css';
 
-const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
-  const { provider, currentUser } = useCampContext();
-  const interventions = useTeamInterventions(team.id) || [];
-  
-  const openInterventions = interventions.filter(i => i.status === 'open');
-  const claimedInterventions = interventions.filter(i => i.status === 'claimed' && i.mentorId === currentUser?.id);
-  const othersClaimedInterventions = interventions.filter(i => i.status === 'claimed' && i.mentorId !== currentUser?.id);
-
-  const handleApproveCheckpoint = async () => {
-    await provider.approveCheckpoint(team.id, 'mvp_build', currentUser!.id);
-  };
-
-  const handleUpdateHealth = async (health: 'green' | 'yellow' | 'red') => {
-    await provider.updateTeam(team.id, { healthStatus: health });
-  };
-
-  const handleClaim = async (id: string) => {
-    await provider.claimIntervention(team.id, id, currentUser!.id);
-  };
-
-  const handleResolve = async (id: string) => {
-    await provider.resolveIntervention(team.id, id, currentUser!.id);
-  };
-
-  return (
-    <div className={`${styles.teamCard} ${styles[`health-${team.healthStatus}`]} ${isUrgent ? styles.urgentCard : ''}`}>
-      <div className={styles.cardHeader}>
-        <div className={styles.headerLeftCard}>
-          <h2>{team.name}</h2>
-          <span className={styles.stageBadge}>{team.currentStage}</span>
-        </div>
-        <div className={styles.healthBadge}>
-          {team.healthStatus === 'green' ? 'OK' : team.healthStatus === 'yellow' ? 'WARN' : 'CRIT'}
-        </div>
-      </div>
-      
-      <p className={styles.idea}>"{team.projectIdea}"</p>
-      
-      <div className={styles.progressContainer}>
-        <div className={styles.progressBar}>
-          <div 
-            className={styles.progressFill} 
-            style={{ width: `${team.progressPercentage}%` }} 
-          />
-        </div>
-        <span className={styles.progressText}>{team.progressPercentage}%</span>
-      </div>
-
-      <div className={styles.checkpointSection}>
-        {team.checkpointStatus !== 'idle' && (
-          <span className={`${styles.statusLabel} ${styles[`status-${team.checkpointStatus}`]}`}>
-            [CHECKPOINT] {team.checkpointStatus.toUpperCase()}
-          </span>
-        )}
-        
-        {team.checkpointStatus === 'pending' && (
-          <button 
-            onClick={handleApproveCheckpoint}
-            className={styles.approveButton}
-          >
-            APPROVE CHECKPOINT
-          </button>
-        )}
-        
-        {openInterventions.length > 0 && (
-          <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>[!] HELP REQUESTED</p>
-            {openInterventions.map(i => (
-              <button key={i.id} onClick={() => handleClaim(i.id)} className={styles.claimBtn}>
-                CLAIM INTERVENTION
-              </button>
-            ))}
-          </div>
-        )}
-
-        {claimedInterventions.length > 0 && (
-          <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel} style={{color: 'var(--color-success)', borderColor: 'var(--color-success)'}}>
-              [+] YOU ARE ASSISTING
-            </p>
-            {claimedInterventions.map(i => (
-              <button key={i.id} onClick={() => handleResolve(i.id)} className={styles.resolveBtn}>
-                MARK RESOLVED
-              </button>
-            ))}
-          </div>
-        )}
-
-        {othersClaimedInterventions.length > 0 && (
-          <div className={styles.interventionsBox} style={{borderColor: 'var(--border-strong)'}}>
-            <p className={styles.interventionsLabel} style={{color: 'var(--text-muted)'}}>
-              [-] OTHER MENTOR ASSISTING
-            </p>
-          </div>
-        )}
-        
-        <div className={styles.healthControls}>
-          <button onClick={() => handleUpdateHealth('green')} className={styles.healthBtnGreen}>SET OK</button>
-          <button onClick={() => handleUpdateHealth('yellow')} className={styles.healthBtnYellow}>SET WARN</button>
-          <button onClick={() => handleUpdateHealth('red')} className={styles.healthBtnRed}>SET CRIT</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 export default function MentorDashboard() {
-  const { currentUser } = useCampContext();
+  const { provider, currentUser } = useCampContext();
+  const { isLoaded, globalState, activeStage } = useCampEngine();
   const teams = useTeams();
 
   if (!currentUser || currentUser.role !== 'mentor') {
-    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS MENTOR VIA <a href="/login">/login</a>.</div>;
+    return <div className={styles.container}><div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS MENTOR.</div></div>;
   }
 
-  const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
-  const monitoringTeams = teams.filter(t => t.checkpointStatus !== 'pending' && t.healthStatus === 'green');
+  if (!isLoaded || !globalState) {
+    return <div className={styles.container}><div className={styles.systemLabel}>INITIALIZING MENTOR TERMINAL...</div></div>;
+  }
+
+  // Filter queues
+  const urgentTeams = teams.filter(t => t.healthStatus === 'red' || t.healthStatus === 'yellow');
+  const reviewPendingTeams = teams.filter(t => t.checkpointStatus === 'pending');
+  const healthyTeams = teams.filter(t => t.healthStatus === 'green' && t.checkpointStatus !== 'pending');
+
+  const handleClaimHelp = async (teamId: string) => {
+    // Legacy support claim
+    await provider.updateTeam(teamId, { healthStatus: 'yellow' });
+  };
+
+  const handleResolveHelp = async (teamId: string) => {
+    await provider.updateTeam(teamId, { healthStatus: 'green' });
+  };
+
+  const handleApproveCheckpoint = async (teamId: string) => {
+    await provider.approveCheckpoint(teamId, 'core_flow', currentUser.id);
+  };
 
   return (
     <div className={styles.container}>
+      {/* HEADER */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
-          <span className={styles.systemLabel}>OP-SYS // MENTOR // {currentUser.id}</span>
-          <h1>Intervention Center</h1>
+          <span className={styles.systemLabel}>OPERATIONAL SUPPORT // MENTOR INTERVENTION CENTER</span>
+          <h1>MENTOR TRIAGE DASHBOARD</h1>
         </div>
+        <GlobalTimer />
       </header>
 
+      {/* TRIAGE LAYOUT */}
       <div className={styles.triageLayout}>
-        {/* LANE 1: ACTION REQUIRED */}
-        <section className={styles.lane}>
-          <h2 className={styles.laneTitleUrgent}>
-            [!] REQUIRES INTERVENTION <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
-          </h2>
-          <div className={styles.urgentGrid}>
-            {actionRequiredTeams.length > 0 ? (
-              actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} />)
+
+        {/* LEFT COLUMN: URGENT HELP & REVIEW QUEUE */}
+        <div>
+          {/* URGENT HELP REQUESTS */}
+          <div className={styles.laneTitleUrgent}>
+            🚨 URGENT HELP REQUESTS <span className={styles.countBadge}>{urgentTeams.length}</span>
+          </div>
+
+          <div className={styles.urgentGrid} style={{ marginBottom: '2rem' }}>
+            {urgentTeams.length === 0 ? (
+              <div className={styles.emptyLane}>[ NO ACTIVE HELP REQUESTS ]</div>
             ) : (
-              <div className={styles.emptyLane}>[ NO ACTION REQUIRED ]</div>
+              urgentTeams.map(t => (
+                <div key={t.id} className={`${styles.teamCard} ${styles.urgentCard}`}>
+                  <div className={styles.cardHeader}>
+                    <div>
+                      <h2>{t.name}</h2>
+                      <span className={styles.systemLabel}>SQUAD // {t.id}</span>
+                    </div>
+                    <span className={`${styles.healthBadge} ${styles[`health-${t.healthStatus}`]}`}>
+                      [{t.healthStatus.toUpperCase()}]
+                    </span>
+                  </div>
+
+                  <p style={{ fontSize: '0.9rem', color: '#ff3366', margin: 0 }}>
+                    ⚠️ الفريق طلب المساعدة ويرغب في توجيه فوري من المُرشد.
+                  </p>
+
+                  <div>
+                    {t.healthStatus === 'red' ? (
+                      <button onClick={() => handleClaimHelp(t.id)} className={styles.claimBtn}>
+                        [ CLAIM HELP REQUEST / استلام الطلب ]
+                      </button>
+                    ) : (
+                      <button onClick={() => handleResolveHelp(t.id)} className={styles.resolveBtn}>
+                        [ RESOLVE / حل المشكلة ]
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))
             )}
           </div>
-        </section>
 
-        {/* LANE 2: MONITORING */}
-        <section className={styles.lane}>
-          <h2 className={styles.laneTitle}>
-            [-] TELEMETRY (OK) <span className={styles.countBadge}>{monitoringTeams.length}</span>
-          </h2>
-          <div className={styles.monitoringGrid}>
-            {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} />)}
+          {/* REVIEW QUEUE (SUBMISSIONS) */}
+          <div className={styles.laneTitle}>
+            📥 DELIVERABLE REVIEW QUEUE <span className={styles.countBadge}>{reviewPendingTeams.length}</span>
           </div>
-        </section>
+
+          <div className={styles.urgentGrid}>
+            {reviewPendingTeams.length === 0 ? (
+              <div className={styles.emptyLane}>[ NO DELIVERABLES PENDING REVIEW ]</div>
+            ) : (
+              reviewPendingTeams.map(t => (
+                <div key={t.id} className={styles.teamCard} style={{ borderRight: '4px solid #00f0ff' }}>
+                  <div className={styles.cardHeader}>
+                    <div>
+                      <h2>{t.name}</h2>
+                      <span className={styles.systemLabel}>SUBMITTED FOR: {activeStage.title}</span>
+                    </div>
+                    <span className={styles.healthBadge} style={{ color: '#ffaa00', borderColor: '#ffaa00' }}>
+                      PENDING REVIEW
+                    </span>
+                  </div>
+
+                  {t.submittedDeliverableUrl && (
+                    <div className={styles.deliverableBox}>
+                      <span className={styles.systemLabel} style={{ display: 'block', marginBottom: '0.2rem' }}>DELIVERABLE URL:</span>
+                      <a href={t.submittedDeliverableUrl} target="_blank" rel="noreferrer" className={styles.deliverableLink}>
+                        {t.submittedDeliverableUrl}
+                      </a>
+                    </div>
+                  )}
+
+                  <button onClick={() => handleApproveCheckpoint(t.id)} className={styles.approveButton}>
+                    [ APPROVE DELIVERABLE / اعتماد التسليم ]
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: MONITORING ALL TEAMS */}
+        <div>
+          <div className={styles.laneTitle}>
+            📊 MONITORING & HEALTH OVERVIEW <span className={styles.countBadge}>{healthyTeams.length} HEALTHY</span>
+          </div>
+
+          <div className={styles.monitoringGrid}>
+            {teams.map(t => (
+              <div key={t.id} className={styles.teamCard}>
+                <div className={styles.cardHeader}>
+                  <div>
+                    <h2 style={{ fontSize: '1rem' }}>{t.name}</h2>
+                    <span className={styles.systemLabel}>{t.id}</span>
+                  </div>
+                  <span className={`${styles.healthBadge} ${styles[`health-${t.healthStatus}`]}`}>
+                    {t.healthStatus}
+                  </span>
+                </div>
+
+                <div style={{ fontSize: '0.75rem', color: '#92b5b1', fontFamily: 'IBM Plex Mono' }}>
+                  PROGRESS: {t.completedTaskIds?.length || 0} TASKS
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     </div>
   );

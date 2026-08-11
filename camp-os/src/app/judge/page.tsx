@@ -7,7 +7,7 @@ import styles from './judge.module.css';
 
 export default function JudgeExperience() {
   const { provider, currentUser } = useCampContext();
-  const { isLoaded, globalState, currentRoSPhase } = useCampEngine();
+  const { isLoaded, globalState, isDemoDay } = useCampEngine();
   const activeTeam = useTeam(globalState?.activeDemoTeamId || undefined);
 
   const [scores, setScores] = useState({
@@ -17,7 +17,7 @@ export default function JudgeExperience() {
     ai: 0,
     pitch: 0
   });
-  
+
   const [submittedFor, setSubmittedFor] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,27 +28,33 @@ export default function JudgeExperience() {
   }, [activeTeam?.id]);
 
   if (!currentUser || currentUser.role !== 'judge') {
-    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS JUDGE VIA <a href="/login">/login</a>.</div>;
+    return <div className={styles.container}><div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS JUDGE VIA <a href="/login">/login</a>.</div></div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.container}>INITIALIZING SCORING MATRIX...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.container}><div className={styles.label}>INITIALIZING SCORING MATRIX...</div></div>;
 
-  if (currentRoSPhase.type !== 'demo_day') {
-    return <div className={styles.container}>
-      <div className={styles.waitingState}>
-        <h1>DEMO DAY OFFLINE</h1>
-        <p>الرجاء الانتظار حتى يقوم المنظّم ببدء الفعالية.</p>
+  if (!isDemoDay) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.waitingState}>
+          <p className={styles.label}>DEMO DAY OFFLINE</p>
+          <h1 style={{ color: '#ffffff' }}>يوم العروض غير مفعّل حالياً</h1>
+          <p style={{ color: '#92b5b1' }}>الرجاء الانتظار حتى يقوم المنظّم ببدء مرحلة العروض.</p>
+        </div>
       </div>
-    </div>;
+    );
   }
 
   if (!activeTeam) {
-    return <div className={styles.container}>
-      <div className={styles.waitingState}>
-        <h1>AWAITING NEXT TEAM</h1>
-        <p>انظر إلى شاشة العرض لمعرفة الترتيب الحالي.</p>
+    return (
+      <div className={styles.container}>
+        <div className={styles.waitingState}>
+          <p className={styles.label}>AWAITING NEXT TEAM</p>
+          <h1 style={{ color: '#ffffff' }}>في انتظار الفريق التالي</h1>
+          <p style={{ color: '#92b5b1' }}>تابع شاشة العرض الرئيسية لمعرفة الفريق المعروض حالياً.</p>
+        </div>
       </div>
-    </div>;
+    );
   }
 
   const handleChange = (criteria: string, value: number) => {
@@ -68,8 +74,9 @@ export default function JudgeExperience() {
     return (
       <div className={styles.container}>
         <div className={styles.successBox}>
-          <h1>SCORE LOGGED</h1>
-          <p>NO FURTHER ACTION REQUIRED FOR THIS TEAM.</p>
+          <p className={styles.label}>SCORE TRANSMITTED ✅</p>
+          <h1 style={{ color: '#00f0ff' }}>تم إرسال التقييم بنجاح</h1>
+          <p style={{ color: '#92b5b1' }}>تم توثيق الدرجات في النظام. بانتظار انتقال المنظم للفريق التالي.</p>
         </div>
       </div>
     );
@@ -80,7 +87,7 @@ export default function JudgeExperience() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.label}>SCORING TERMINAL</p>
+        <span className={styles.label}>JUDGE SCORING TERMINAL // SQUAD #{activeTeam.id}</span>
         <h1 className={styles.teamName}>{activeTeam.name}</h1>
         <p className={styles.idea}>"{activeTeam.projectIdea}"</p>
       </header>
@@ -89,7 +96,7 @@ export default function JudgeExperience() {
         {Object.keys(scores).map((key) => (
           <div key={key} className={styles.scoreRow}>
             <div className={styles.scoreHeader}>
-              <span className={styles.criteriaName}>{key.toUpperCase()}</span>
+              <span className={styles.criteriaName}>CRITERIA: {key.toUpperCase()}</span>
               {scores[key as keyof typeof scores] > 0 && (
                 <span className={styles.scoreValue}>{scores[key as keyof typeof scores]} / 10</span>
               )}
@@ -116,7 +123,7 @@ export default function JudgeExperience() {
           disabled={!allScored}
           className={styles.submitButton}
         >
-          {allScored ? 'TRANSMIT FINAL SCORE' : 'COMPLETE ALL CRITERIA'}
+          {allScored ? '[ TRANSMIT SCORE / إرسال التقييم ]' : '[ أكمل تقييم جميع المعايير ]'}
         </button>
       </div>
     </div>

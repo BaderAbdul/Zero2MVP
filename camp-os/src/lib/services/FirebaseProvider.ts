@@ -1,14 +1,14 @@
 import { 
   collection, doc, getDoc, setDoc, updateDoc, onSnapshot, 
-  query, where, addDoc, serverTimestamp, arrayUnion, getDocs,
-  runTransaction, deleteDoc
+  query, where, addDoc, getDocs, runTransaction, deleteDoc, arrayUnion
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage, AuditLogEventType, Intervention, User } from './types';
+import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage, AuditLogEventType, Intervention, User, CustomStage } from './types';
+import { DEFAULT_ZERO2MVP_STAGES } from './campEngine';
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   'setup': ['welcome'],
-  'welcome': ['ideation', 'setup'], // allow back to setup if needed
+  'welcome': ['ideation', 'setup'],
   'ideation': ['build', 'welcome'],
   'build': ['checkpoint', 'pitch_prep'],
   'checkpoint': ['break', 'pitch_prep', 'build'],
@@ -18,17 +18,23 @@ const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   'demo_day_presenting': ['demo_day_judging'],
   'demo_day_judging': ['demo_day_reveal'],
   'demo_day_reveal': ['demo_day_queue'],
-  'break': ['setup', 'welcome', 'ideation', 'build', 'checkpoint', 'pitch_prep'], // Can resume to any pre-break phase
-  'finished': ['setup'] // allow full reset loop
+  'break': ['setup', 'welcome', 'ideation', 'build', 'checkpoint', 'pitch_prep'],
+  'finished': ['setup']
 };
 
 export class FirebaseProvider implements DataProvider {
   subscribeToGlobalState(callback: (state: GlobalState) => void): () => void {
     const unsub = onSnapshot(doc(db, 'camp_os', 'global_state'), (docSnap) => {
       if (docSnap.exists()) {
-        callback(docSnap.data() as GlobalState);
+        const data = docSnap.data() as GlobalState;
+        if (!data.customStages || data.customStages.length === 0) {
+          data.customStages = DEFAULT_ZERO2MVP_STAGES;
+        }
+        if (!data.activeCustomStageId && data.customStages.length > 0) {
+          data.activeCustomStageId = data.customStages[0].id;
+        }
+        callback(data);
       } else {
-        // Fallback for empty database to prevent hanging UI
         callback({
           campStatus: 'setup',
           currentPhase: 'setup',
@@ -36,6 +42,11 @@ export class FirebaseProvider implements DataProvider {
           nextDemoTeamId: null,
           announcement: null,
           timerEndTime: null,
+          timerStartTime: null,
+          timerMode: 'countdown',
+          isTimerPaused: false,
+          customStages: DEFAULT_ZERO2MVP_STAGES,
+          activeCustomStageId: DEFAULT_ZERO2MVP_STAGES[0].id,
           revealScores: false
         } as GlobalState);
       }
@@ -108,9 +119,7 @@ export class FirebaseProvider implements DataProvider {
         timestamp: Date.now()
       });
     } catch (e: any) {
-      console.warn('Audit log failed (expected in local mock without rules, but must pass in prod):', e.message);
-      // We don't throw here to avoid breaking the main operation if audit logging fails due to rules testing,
-      // but in a strict prod environment we might want to fail the operation.
+      console.warn('Audit log failed (expected in local mock without rules):', e.message);
     }
   }
 
@@ -126,12 +135,44 @@ export class FirebaseProvider implements DataProvider {
       if (currentPhase !== newPhase && currentPhase !== 'break') {
         const allowed = ALLOWED_TRANSITIONS[currentPhase] || [];
         if (!allowed.includes(newPhase)) {
-          throw new Error(`Invalid phase transition: ${currentPhase} -> ${newPhase}`);
+          console.warn(`Legacy phase transition bypass: ${currentPhase} -> ${newPhase}`);
         }
       }
     }
 
     await updateDoc(ref, updates);
+  }
+
+  async saveCustomStages(stages: CustomStage[]): Promise<void> {
+    const ref = doc(db, 'camp_os', 'global_state');
+    await updateDoc(ref, { customStages: stages });
+  }
+
+  async activateCustomStage(stageId: string): Promise<void> {
+    const ref = doc(db, 'camp_os', 'global_state');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+
+    const data = snap.data() as GlobalState;
+    const stages = data.customStages || DEFAULT_ZERO2MVP_STAGES;
+    const targetStage = stages.find(s => s.id === stageId);
+
+    if (!targetStage) return;
+
+    const now = Date.now();
+    const durationMs = (targetStage.durationMinutes || 30) * 60 * 1000;
+
+    await updateDoc(ref, {
+      activeCustomStageId: stageId,
+      timerMode: targetStage.timerMode || 'countdown',
+      timerStartTime: now,
+      timerEndTime: now + durationMs,
+      isTimerPaused: false,
+      timerPausedAt: null,
+      timerPausedRemainingMs: durationMs
+    });
+
+    await this.logAudit('STAGE_ACTIVATED', undefined, 'organizer', stageId, { title: targetStage.title });
   }
 
   async updateTeam(teamId: string, updates: Partial<Team>): Promise<void> {
@@ -210,14 +251,10 @@ export class FirebaseProvider implements DataProvider {
       totalScore: total
     });
     
-    // We NO LONGER update the team document's demoDayTotalScore blindly here.
-    // Derived total should be calculated from 'demo_scores' collection by the client/projector.
-    
     await this.logAudit('SCORES_SUBMITTED', score.judgeId, 'judge', score.teamId, { totalScore: total });
   }
 
   async joinTeam(joinCode: string, participantId: string): Promise<string> {
-    // 1. Query for the team by joinCode first
     const q = query(collection(db, 'teams'), where('joinCode', '==', joinCode));
     const snaps = await getDocs(q);
     if (snaps.empty) {
@@ -225,7 +262,6 @@ export class FirebaseProvider implements DataProvider {
     }
     const teamId = snaps.docs[0].id;
     
-    // 2. Perform atomic transaction
     await runTransaction(db, async (transaction) => {
       const userRef = doc(db, 'users', participantId);
       const userDoc = await transaction.get(userRef);
@@ -270,17 +306,23 @@ export class FirebaseProvider implements DataProvider {
   async seedDatabase(): Promise<void> {
     const globalStateRef = doc(db, 'camp_os', 'global_state');
     await setDoc(globalStateRef, {
-      currentPhase: 'setup',
+      campStatus: 'live',
+      currentPhase: 'welcome',
+      activeCustomStageId: DEFAULT_ZERO2MVP_STAGES[0].id,
+      customStages: DEFAULT_ZERO2MVP_STAGES,
       activeDemoTeamId: null,
       announcement: null,
-      timerEndTime: null,
+      timerEndTime: Date.now() + 20 * 60 * 1000,
+      timerStartTime: Date.now(),
+      timerMode: 'countdown',
+      isTimerPaused: false,
       revealScores: false
     });
 
     const teams = [
-      { id: 'team-alpha', name: 'Team Alpha', projectIdea: 'AI coding assistant', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] },
-      { id: 'team-nova', name: 'Team Nova', projectIdea: 'Smart calendar', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] },
-      { id: 'team-omega', name: 'Team Omega', projectIdea: 'Auto documenter', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] }
+      { id: 'team-alpha', name: 'Team Alpha', joinCode: 'ALPHA1', projectIdea: 'AI coding assistant', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] },
+      { id: 'team-nova', name: 'Team Nova', joinCode: 'NOVA02', projectIdea: 'Smart calendar', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] },
+      { id: 'team-omega', name: 'Team Omega', joinCode: 'OMEGA3', projectIdea: 'Auto documenter', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] }
     ];
 
     for (const t of teams) {

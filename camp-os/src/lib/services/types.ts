@@ -13,8 +13,34 @@ export type CampPhase =
   | 'finished';
 
 export type CampStatus = 'setup' | 'waiting_room' | 'live';
-
 export type TimerMode = 'countdown' | 'countup' | 'hidden';
+export type CustomStageType = 'work' | 'break' | 'demo' | 'custom';
+
+export interface CustomTask {
+  id: string;
+  title: string;
+  description?: string;
+  required?: boolean;
+  order: number;
+  type?: 'task' | 'checkpoint' | 'upload' | 'text' | 'link';
+  requiresSubmission?: boolean;
+}
+
+export interface CustomStage {
+  id: string;
+  title: string;
+  description: string;
+  order: number;
+  day?: number;
+  type: CustomStageType;
+  durationMinutes: number;
+  timerMode?: TimerMode;
+  tasks?: CustomTask[];
+  requiresSubmission?: boolean;
+  requiresMentorReview?: boolean;
+  status?: 'draft' | 'active' | 'completed';
+  projectorMode?: string;
+}
 
 export interface GlobalState {
   campStatus: CampStatus;
@@ -25,6 +51,11 @@ export interface GlobalState {
   timerEndTime: number | null;
   timerStartTime?: number | null;
   timerMode?: TimerMode;
+  isTimerPaused?: boolean;
+  timerPausedAt?: number | null;
+  timerPausedRemainingMs?: number;
+  customStages?: CustomStage[];
+  activeCustomStageId?: string;
   timerRoles?: UserRole[];
   customStageTitle?: string;
   customStageDesc?: string;
@@ -48,6 +79,8 @@ export interface Team {
   checkpointStatus: CheckpointStatus;
   demoDayTotalScore: number;
   completedTaskIds: string[];
+  submittedDeliverableUrl?: string;
+  submissionStatus?: 'idle' | 'pending' | 'approved' | 'rejected';
 }
 
 export interface Task {
@@ -78,7 +111,7 @@ export interface User {
   id: string;
   name: string;
   role: UserRole;
-  teamId?: string; // For participants
+  teamId?: string;
 }
 
 export interface DataProvider {
@@ -105,19 +138,23 @@ export interface DataProvider {
   createTeam(name: string): Promise<void>;
   deleteTeam(teamId: string): Promise<void>;
   
+  // Custom Stage Management
+  saveCustomStages(stages: CustomStage[]): Promise<void>;
+  activateCustomStage(stageId: string): Promise<void>;
+  
   // Dev Only
   resetState(): Promise<void>;
 }
 
 // ------------------------------------------------------------------
-// PHASE 2: CAMP OPERATIONS ENGINE TYPES
+// CAMP OPERATIONS ENGINE TYPES
 // ------------------------------------------------------------------
 
 export type PhaseType = 'normal' | 'break' | 'demo_day';
 
 export interface RunOfShowPhase {
-  id: string; // e.g., 'phase_1'
-  title: string; // e.g., 'Ideation'
+  id: string;
+  title: string;
   description: string;
   durationMinutes: number;
   order: number;
@@ -159,6 +196,7 @@ export interface Intervention {
 
 export type AuditLogEventType = 
   | 'PHASE_STARTED' 
+  | 'STAGE_ACTIVATED'
   | 'BREAK_STARTED' 
   | 'BREAK_ENDED' 
   | 'MISSION_COMPLETED'
@@ -175,9 +213,9 @@ export interface AuditLogEvent {
   id: string;
   type: AuditLogEventType;
   timestamp: number;
-  actorId?: string; // Who triggered it
+  actorId?: string;
   actorRole?: UserRole;
-  targetId?: string; // Team ID, Phase ID, etc.
+  targetId?: string;
   metadata?: Record<string, any>;
 }
 

@@ -1,12 +1,16 @@
 .projectorContainer {
   width: 100vw;
   height: 100vh;
-  background-color: var(--bg-main);
-  color: var(--text-main);
+  background-color: #030807;
+  color: #e2f1f0;
+  font-family: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
   overflow: hidden;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
+  position: relative;
+  direction: rtl;
 }
 
 .centerBox {
@@ -15,293 +19,168 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 2.5rem;
-  width: 100%;
-  padding: 4rem;
+  width: 90%;
+  max-width: 1200px;
 }
 
 .glitchText {
-  font-size: 8rem;
-  font-weight: 800;
+  font-size: 5rem;
+  font-weight: 900;
+  color: #ffffff;
   margin: 0;
-  letter-spacing: normal;
   text-transform: uppercase;
-  background: linear-gradient(135deg, #fff, var(--text-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.fireText {
-  font-size: 8rem;
-  font-weight: 800;
-  margin: 0;
-  color: var(--color-warning);
-  text-transform: uppercase;
-}
-
-.alertText {
-  font-size: 8rem;
-  font-weight: 800;
-  margin: 0;
-  color: var(--color-danger);
-  animation: flash 1s infinite alternate;
-  text-transform: uppercase;
-  font-family: 'IBM Plex Mono', monospace;
-}
-
-@keyframes flash {
-  from { opacity: 1; }
-  to { opacity: 0.5; }
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
-  font-size: 3rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  margin: 0;
-  text-transform: uppercase;
+  font-size: 2rem;
+  color: #00f0ff;
   font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: 0.05em;
+  margin-top: 0.5rem;
+}
+
+.projectorTimer {
+  margin-top: 2rem;
+  padding: 1.5rem 3rem;
+  background: #06100f;
+  border: 2px solid #00f0ff;
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+}
+
+.timerValue {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 6rem;
+  font-weight: 900;
+  color: #00f0ff;
+  line-height: 1;
+}
+
+.timerWarning .timerValue {
+  color: #ff3366;
+  text-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
 }
 
 .announcementBox {
-  margin-top: 4rem;
-  padding: 2.5rem 5rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  font-size: 2.5rem;
+  margin-top: 2.5rem;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px solid #00f0ff;
+  color: #00f0ff;
+  padding: 1.25rem 2.5rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: var(--color-accent);
-  text-transform: uppercase;
-  border-left: 8px solid var(--color-accent);
 }
 
-/* BUILD SCREEN */
 .buildScreen {
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  max-width: 1600px;
+  height: 90vh;
   display: flex;
   flex-direction: column;
-  padding: 5rem;
-  gap: 4rem;
+  justify-content: space-between;
 }
 
 .buildHeader {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 2px solid var(--border-strong);
-  padding-bottom: 2rem;
+  flex-direction: column;
+  gap: 1rem;
+  border-bottom: 2px solid #0e2a28;
+  padding-bottom: 1.5rem;
 }
 
 .headerTitleRow {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4rem;
 }
 
 .phaseTitle {
-  font-size: 4.5rem;
+  font-size: 3rem;
   font-weight: 800;
+  color: #ffffff;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 2rem;
-  color: var(--text-main);
-  text-transform: uppercase;
+  gap: 1rem;
 }
 
 .liveDot {
-  width: 32px;
-  height: 32px;
-  background: var(--color-danger);
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-}
-
-.announcementBoxAlt {
-  background: var(--bg-main);
-  border: 1px solid var(--color-accent);
-  padding: 2rem 4rem;
-  font-size: 2rem;
-  font-weight: 800;
-  color: var(--color-accent);
-  text-transform: uppercase;
+  background: #00f0ff;
+  box-shadow: 0 0 12px #00f0ff;
 }
 
 .podiumContainer {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+  flex: 1;
   justify-content: center;
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
 }
 
 .podiumRow {
-  display: grid;
-  grid-template-columns: 100px 400px 1fr 150px;
+  display: flex;
   align-items: center;
-  gap: 3rem;
-  background: var(--bg-main);
-  padding: 2rem 3rem;
-  border: 1px solid var(--border-strong);
+  gap: 1.5rem;
+  background: #06100f;
+  border: 1px solid #0e2a28;
+  padding: 1rem 1.5rem;
 }
 
 .podiumFirst {
-  background: var(--bg-elevated);
-  border-color: var(--color-accent);
-  transform: scale(1.02);
-  z-index: 10;
-  border-left: 8px solid var(--color-accent);
+  border-color: #00f0ff;
+  background: rgba(0, 240, 255, 0.04);
 }
 
 .podiumRank {
-  font-size: 2.5rem;
-  font-weight: 800;
-  color: var(--text-muted);
   font-family: 'IBM Plex Mono', monospace;
-}
-
-.podiumFirst .podiumRank {
-  color: var(--color-accent);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #00f0ff;
+  width: 50px;
 }
 
 .podiumName {
-  font-size: 3rem;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+  width: 250px;
 }
 
 .podiumBarContainer {
-  height: 24px;
-  background: var(--bg-main);
+  flex: 1;
+  height: 12px;
+  background: #030807;
+  border: 1px solid #0e2a28;
   overflow: hidden;
-  border: 1px solid var(--border-strong);
 }
 
 .podiumBarFill {
   height: 100%;
-  background: var(--text-secondary);
-}
-
-.podiumFirst .podiumBarFill {
-  background: var(--color-accent);
+  background: #00f0ff;
+  box-shadow: 0 0 10px #00f0ff;
 }
 
 .podiumScore {
-  font-size: 2.5rem;
-  font-weight: 800;
-  text-align: end;
-  color: var(--text-main);
   font-family: 'IBM Plex Mono', monospace;
-}
-
-/* CHECKPOINT */
-.checkpointGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  justify-content: center;
-  max-width: 1400px;
-  margin-top: 5rem;
-}
-
-.checkpointPill {
-  font-size: 2.5rem;
+  font-size: 1.25rem;
   font-weight: 800;
-  padding: 2rem 4rem;
-  background: var(--bg-main);
-  border: 2px solid var(--border-strong);
-  text-transform: uppercase;
-}
-
-.pending {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: var(--color-warning);
-  color: var(--color-warning);
-}
-
-.approved {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: var(--color-success);
-  color: var(--color-success);
-}
-
-/* DEMO DAY ACTIVE */
-.activeTeamBox {
-  margin-top: 5rem;
-  background: var(--bg-main);
-  padding: 6rem;
-  border: 1px solid var(--border-strong);
-  border-left: 8px solid var(--color-accent);
-  width: 100%;
-  max-width: 1600px;
+  color: #00f0ff;
+  width: 80px;
   text-align: left;
 }
 
-.upNext {
-  color: var(--color-warning);
-  font-size: 2.5rem;
-  margin-bottom: 3rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  font-family: 'IBM Plex Mono', monospace;
-  letter-spacing: 0.1em;
-}
-
 .massiveTeamName {
-  font-size: 8rem;
-  font-weight: 800;
-  margin: 0 0 2rem 0;
-  color: var(--text-main);
-  line-height: 1.1;
-  text-transform: uppercase;
-}
-
-.projectIdea {
-  font-size: 3rem;
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-style: italic;
-}
-
-.massiveScore {
-  margin-top: 5rem;
-  font-size: 14rem;
-  font-weight: 800;
-  color: var(--color-success);
-  font-family: 'IBM Plex Mono', monospace;
-}
-
-.projectorTimer {
-  background: var(--bg-main);
-  border: 1px solid var(--border-strong);
-  padding: 1rem 2.5rem;
   font-size: 4.5rem;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
-  color: var(--color-accent);
-  font-family: 'IBM Plex Mono', monospace;
-}
-
-.timerWarning {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
-  animation: pulseHuge 1s infinite alternate;
+  font-weight: 900;
+  color: #ffffff;
+  margin: 1rem 0;
 }
 
 .loading {
-  font-size: 3rem;
-  color: var(--text-secondary);
   font-family: 'IBM Plex Mono', monospace;
-  text-transform: uppercase;
+  color: #00f0ff;
+  font-size: 1.5rem;
 }

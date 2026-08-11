@@ -1,6 +1,7 @@
 'use client';
 
-import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage, Intervention, User } from './types';
+import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage, Intervention, User, CustomStage } from './types';
+import { DEFAULT_ZERO2MVP_STAGES } from './campEngine';
 
 // Initial Mock Data
 const INITIAL_GLOBAL_STATE: GlobalState = {
@@ -10,6 +11,11 @@ const INITIAL_GLOBAL_STATE: GlobalState = {
   nextDemoTeamId: null,
   announcement: null,
   timerEndTime: null,
+  timerStartTime: null,
+  timerMode: 'countdown',
+  isTimerPaused: false,
+  customStages: DEFAULT_ZERO2MVP_STAGES,
+  activeCustomStageId: DEFAULT_ZERO2MVP_STAGES[0].id,
   revealScores: false,
 };
 
@@ -57,7 +63,6 @@ export class MockProvider implements DataProvider {
   private demoScores: Map<string, DemoDayScore[]>;
   private interventions: Map<string, Intervention[]>;
 
-  // Subscriptions
   private globalStateSubscribers: Set<(state: GlobalState) => void> = new Set();
   private teamsSubscribers: Set<(teams: Team[]) => void> = new Set();
   private teamSubscribers: Map<string, Set<(team: Team | null) => void>> = new Map();
@@ -91,6 +96,10 @@ export class MockProvider implements DataProvider {
       try {
         const parsed = JSON.parse(data) as MockDB;
         this.globalState = parsed.globalState;
+        if (!this.globalState.customStages) {
+          this.globalState.customStages = DEFAULT_ZERO2MVP_STAGES;
+          this.globalState.activeCustomStageId = DEFAULT_ZERO2MVP_STAGES[0].id;
+        }
         this.teams = new Map(parsed.teams.map(t => [t.id, t]));
         this.tasks = new Map(Object.entries(parsed.tasks || {}));
         this.demoScores = new Map(Object.entries(parsed.demoScores || {}));
@@ -112,7 +121,7 @@ export class MockProvider implements DataProvider {
       interventions: Object.fromEntries(this.interventions)
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
-    this.notifyAll(); // Also notify local tab
+    this.notifyAll();
   }
 
   private notifyAll() {
@@ -124,12 +133,7 @@ export class MockProvider implements DataProvider {
     Array.from(this.interventions.keys()).forEach(id => this.notifyInterventions(id));
   }
 
-  // --- Subscriptions ---
-
-  private demoScores_list: DemoDayScore[] = [];
-
   subscribeToUsers(callback: (users: User[]) => void): () => void {
-    // Return empty for mock
     callback([]);
     return () => {};
   }
@@ -139,16 +143,31 @@ export class MockProvider implements DataProvider {
   }
 
   async createTeam(name: string): Promise<void> {
-    // mock
+    const id = 'team-' + Math.random().toString(36).substr(2, 5);
+    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    this.teams.set(id, {
+      id,
+      name,
+      joinCode,
+      projectIdea: 'TBD',
+      currentStage: 'ideation',
+      progressPercentage: 0,
+      healthStatus: 'green',
+      checkpointStatus: 'idle',
+      demoDayTotalScore: 0,
+      completedTaskIds: []
+    });
+    this.saveToStorage();
   }
 
   async deleteTeam(teamId: string): Promise<void> {
-    // mock delete
+    this.teams.delete(teamId);
+    this.saveToStorage();
   }
 
   subscribeToGlobalState(callback: (state: GlobalState) => void): () => void {
     this.globalStateSubscribers.add(callback);
-    callback({ ...this.globalState }); // Immediate flush
+    callback({ ...this.globalState });
     return () => this.globalStateSubscribers.delete(callback);
   }
 
@@ -194,11 +213,31 @@ export class MockProvider implements DataProvider {
     return () => this.interventionsSubscribers.get(teamId)!.delete(callback);
   }
 
-  // --- Mutations ---
-
   async updateGlobalState(updates: Partial<GlobalState>): Promise<void> {
     this.globalState = { ...this.globalState, ...updates };
     this.saveToStorage();
+  }
+
+  async saveCustomStages(stages: CustomStage[]): Promise<void> {
+    this.globalState.customStages = stages;
+    this.saveToStorage();
+  }
+
+  async activateCustomStage(stageId: string): Promise<void> {
+    const stages = this.globalState.customStages || DEFAULT_ZERO2MVP_STAGES;
+    const stage = stages.find(s => s.id === stageId);
+    if (stage) {
+      const now = Date.now();
+      const durationMs = (stage.durationMinutes || 30) * 60 * 1000;
+      this.globalState.activeCustomStageId = stageId;
+      this.globalState.timerMode = stage.timerMode || 'countdown';
+      this.globalState.timerStartTime = now;
+      this.globalState.timerEndTime = now + durationMs;
+      this.globalState.isTimerPaused = false;
+      this.globalState.timerPausedAt = null;
+      this.globalState.timerPausedRemainingMs = durationMs;
+      this.saveToStorage();
+    }
   }
 
   async updateTeam(teamId: string, updates: Partial<Team>): Promise<void> {
@@ -292,15 +331,12 @@ export class MockProvider implements DataProvider {
       this.demoScores.set(score.teamId, []);
     }
     const teamScores = this.demoScores.get(score.teamId)!;
-    
     const totalScore = score.scores.problem + score.scores.product + score.scores.execution + score.scores.ai + score.scores.pitch;
-    
     const newScore: DemoDayScore = {
       ...score,
       id: Math.random().toString(36).substr(2, 9),
       totalScore
     };
-    
     teamScores.push(newScore);
 
     const team = this.teams.get(score.teamId);
@@ -320,7 +356,6 @@ export class MockProvider implements DataProvider {
     this.saveToStorage();
   }
 
-  // --- Notification Helpers ---
   private notifyGlobalState() {
     const s = { ...this.globalState };
     this.globalStateSubscribers.forEach(cb => cb(s));
