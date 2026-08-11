@@ -1,22 +1,28 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCampEngine } from '@/lib/services/campEngine';
 import { useTeams } from '@/lib/services/CampContext';
 import styles from './projector.module.css';
 
 export default function AuditoriumProjector() {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { 
     isLoaded, globalState, activeSession, nextSession, 
     formattedTime, isBreak, isDemoDay, activeDemoTeam
   } = useCampEngine();
   const teams = useTeams();
 
-  if (!isLoaded || !globalState) {
+  if (!mounted || !isLoaded || !globalState) {
     return (
       <div className={styles.projectorShell} style={{ justifyContent: 'center', alignItems: 'center' }}>
         <h1 className={styles.brandTitle}>FROM ZERO TO MVP</h1>
-        <p style={{ fontSize: '1.5rem', marginTop: '1rem' }}>جاري شاشة عرض القاعة الرئيسية...</p>
+        <p style={{ fontSize: '1.5rem', marginTop: '1rem' }}>جاري تحميل شاشة عرض القاعة الرئيسية...</p>
       </div>
     );
   }

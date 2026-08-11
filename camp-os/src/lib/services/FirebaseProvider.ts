@@ -10,6 +10,20 @@ import {
 } from './types';
 import { DEFAULT_ZERO2MVP_SESSIONS } from './campEngine';
 
+const FALLBACK_GLOBAL_STATE: GlobalState = {
+  campCode: 'Z2MVP',
+  campStatus: 'welcome',
+  isCampPaused: false,
+  activeSessionId: DEFAULT_ZERO2MVP_SESSIONS[0].id,
+  sessions: DEFAULT_ZERO2MVP_SESSIONS,
+  announcement: null,
+  announcementImageUrl: null,
+  timerEndTime: null,
+  timerStartTime: null,
+  timerMode: 'countdown',
+  isTimerPaused: false
+};
+
 export class FirebaseProvider implements DataProvider {
   subscribeToGlobalState(callback: (state: GlobalState) => void): () => void {
     const unsub = onSnapshot(doc(db, 'camp_os', 'global_state'), (docSnap) => {
@@ -23,19 +37,11 @@ export class FirebaseProvider implements DataProvider {
         }
         callback(data);
       } else {
-        callback({
-          campCode: 'Z2MVP',
-          campStatus: 'welcome',
-          isCampPaused: false,
-          activeSessionId: DEFAULT_ZERO2MVP_SESSIONS[0].id,
-          sessions: DEFAULT_ZERO2MVP_SESSIONS,
-          announcement: null,
-          timerEndTime: null,
-          timerStartTime: null,
-          timerMode: 'countdown',
-          isTimerPaused: false
-        } as GlobalState);
+        callback(FALLBACK_GLOBAL_STATE);
       }
+    }, (error) => {
+      console.warn('subscribeToGlobalState listener error:', error);
+      callback(FALLBACK_GLOBAL_STATE);
     });
     return unsub;
   }
@@ -44,6 +50,9 @@ export class FirebaseProvider implements DataProvider {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
       const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as User);
       callback(users);
+    }, (error) => {
+      console.warn('subscribeToUsers listener error:', error);
+      callback([]);
     });
     return unsub;
   }
@@ -52,6 +61,9 @@ export class FirebaseProvider implements DataProvider {
     const unsub = onSnapshot(collection(db, 'teams'), (snapshot) => {
       const teams = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Team);
       callback(teams);
+    }, (error) => {
+      console.warn('subscribeToTeams listener error:', error);
+      callback([]);
     });
     return unsub;
   }
@@ -63,6 +75,9 @@ export class FirebaseProvider implements DataProvider {
       } else {
         callback(null);
       }
+    }, (error) => {
+      console.warn('subscribeToTeam listener error:', error);
+      callback(null);
     });
     return unsub;
   }
@@ -72,6 +87,9 @@ export class FirebaseProvider implements DataProvider {
     const unsub = onSnapshot(q, (snapshot) => {
       const tasks = snapshot.docs.map(doc => doc.data() as Task);
       callback(tasks);
+    }, (error) => {
+      console.warn('subscribeToTeamTasks listener error:', error);
+      callback([]);
     });
     return unsub;
   }
@@ -81,6 +99,9 @@ export class FirebaseProvider implements DataProvider {
     const unsub = onSnapshot(q, (snapshot) => {
       const scores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as DemoDayScore);
       callback(scores);
+    }, (error) => {
+      console.warn('subscribeToDemoScores listener error:', error);
+      callback([]);
     });
     return unsub;
   }
@@ -90,6 +111,9 @@ export class FirebaseProvider implements DataProvider {
     const unsub = onSnapshot(q, (snapshot) => {
       const ints = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       callback(ints);
+    }, (error) => {
+      console.warn('subscribeToInterventions listener error:', error);
+      callback([]);
     });
     return unsub;
   }
