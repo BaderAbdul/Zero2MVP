@@ -1,675 +1,507 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useCampContext, useTeams, useUsers, useDemoScores } from '@/lib/services/CampContext';
-import { useCampEngine, QUICK_ADD_PRESETS, DEFAULT_ZERO2MVP_STAGES } from '@/lib/services/campEngine';
+import { useCampContext, useTeams } from '@/lib/services/CampContext';
+import { useCampEngine, SESSION_PRESETS } from '@/lib/services/campEngine';
+import { Session, Team, TeamSubmission } from '@/lib/services/types';
 import styles from './organizer.module.css';
-import { TimerMode, CustomStage, CustomTask } from '@/lib/services/types';
 
-export default function OrganizerMissionControl() {
+type ActiveTab = 'camp_control' | 'people_teams';
+
+export default function OrganizerHub() {
   const { provider, currentUser } = useCampContext();
   const { 
-    isLoaded, globalState, stages, activeStage, 
-    formattedTime, timerMode, isTimerPaused, isTimerRunning,
-    tasks, completedCount, totalTasks, progressPercentage
+    isLoaded, globalState, sessions, activeSession, activeSessionIndex, nextSession,
+    timerMode, isTimerPaused, formattedTime, needsAttentionTeams
   } = useCampEngine();
-
   const teams = useTeams();
-  const users = useUsers();
 
-  // Modals & Drawers
-  const [showPresetModal, setShowPresetModal] = useState(false);
-  const [showStageEditModal, setShowStageEditModal] = useState(false);
-  const [editingStage, setEditingStage] = useState<Partial<CustomStage> | null>(null);
+  const [activeTab, setActiveTab] = useState<ActiveTab>('camp_control');
 
-  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskType, setNewTaskType] = useState<'task' | 'checkpoint' | 'upload' | 'text' | 'link'>('task');
+  // Modals & Drawer States
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [editingSession, setEditingSession] = useState<Partial<Session> | null>(null);
 
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [announcementInput, setAnnouncementInput] = useState('');
 
-  const [newTeamName, setNewTeamName] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [reviewFeedbackInput, setReviewFeedbackInput] = useState('');
+
+  const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
+  const [newTeamNameInput, setNewTeamNameInput] = useState('');
+
+  const [showAddOrganizerModal, setShowAddOrganizerModal] = useState(false);
+  const [newOrganizerNameInput, setNewOrganizerNameInput] = useState('');
 
   if (!isLoaded || !globalState) {
-    return <div className={styles.loading}>INITIALIZING COMMAND SYSTEM...</div>;
-  }
-
-  if (currentUser?.role !== 'organizer') {
-    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS ORGANIZER.</div>;
-  }
-
-  // --- Camp Status Actions ---
-  const handleStartLiveCamp = async (selectedStages: CustomStage[] = DEFAULT_ZERO2MVP_STAGES) => {
-    await provider.saveCustomStages(selectedStages);
-    await provider.activateCustomStage(selectedStages[0].id);
-    await provider.updateGlobalState({ campStatus: 'live' }, currentUser.id);
-  };
-
-  const handleCreateTeam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTeamName.trim()) return;
-    await provider.createTeam(newTeamName.trim());
-    setNewTeamName('');
-  };
-
-  const handleDeleteTeam = async (teamId: string) => {
-    if (window.confirm("هل أنت متأكد من حذف هذا الفريق؟")) {
-      await provider.deleteTeam(teamId);
-    }
-  };
-
-  // --- Live Timer Actions ---
-  const toggleTimerPause = async () => {
-    const now = Date.now();
-    if (isTimerPaused) {
-      // RESUME
-      if (timerMode === 'countdown') {
-        const remaining = globalState.timerPausedRemainingMs || (activeStage.durationMinutes * 60 * 1000);
-        await provider.updateGlobalState({
-          isTimerPaused: false,
-          timerEndTime: now + remaining,
-          timerPausedRemainingMs: undefined
-        }, currentUser.id);
-      } else if (timerMode === 'countup') {
-        const pausedAt = globalState.timerPausedAt || now;
-        const pausedDuration = now - pausedAt;
-        const adjustedStart = (globalState.timerStartTime || now) + pausedDuration;
-        await provider.updateGlobalState({
-          isTimerPaused: false,
-          timerStartTime: adjustedStart,
-          timerPausedAt: null
-        }, currentUser.id);
-      }
-    } else {
-      // PAUSE
-      if (timerMode === 'countdown' && globalState.timerEndTime) {
-        const remaining = Math.max(0, globalState.timerEndTime - now);
-        await provider.updateGlobalState({
-          isTimerPaused: true,
-          timerPausedRemainingMs: remaining
-        }, currentUser.id);
-      } else if (timerMode === 'countup') {
-        await provider.updateGlobalState({
-          isTimerPaused: true,
-          timerPausedAt: now
-        }, currentUser.id);
-      }
-    }
-  };
-
-  const handleAdjustTimerMinutes = async (minutesDelta: number) => {
-    if (timerMode === 'countdown') {
-      const currentEnd = globalState.timerEndTime || Date.now();
-      const newEnd = Math.max(Date.now(), currentEnd + (minutesDelta * 60 * 1000));
-      await provider.updateGlobalState({ timerEndTime: newEnd }, currentUser.id);
-    }
-  };
-
-  const handleChangeTimerMode = async (mode: TimerMode) => {
-    const now = Date.now();
-    const durationMs = (activeStage.durationMinutes || 30) * 60 * 1000;
-    const updates: Partial<typeof globalState> = { timerMode: mode, isTimerPaused: false };
-
-    if (mode === 'countdown') {
-      updates.timerStartTime = now;
-      updates.timerEndTime = now + durationMs;
-    } else if (mode === 'countup') {
-      updates.timerStartTime = now;
-      updates.timerEndTime = null;
-    } else {
-      updates.timerStartTime = null;
-      updates.timerEndTime = null;
-    }
-
-    await provider.updateGlobalState(updates, currentUser.id);
-  };
-
-  // --- Stage Management (Layer B) ---
-  const handleActivateStage = async (stageId: string) => {
-    await provider.activateCustomStage(stageId);
-  };
-
-  const handleOpenPresetSelect = () => {
-    setShowPresetModal(true);
-  };
-
-  const handleAddPresetStage = (preset: Partial<CustomStage>) => {
-    const newStage: CustomStage = {
-      id: `stage_${Date.now()}`,
-      title: preset.title || 'مرحلة جديدة',
-      description: preset.description || '',
-      order: stages.length + 1,
-      day: 1,
-      type: preset.type || 'work',
-      durationMinutes: preset.durationMinutes || 30,
-      timerMode: preset.timerMode || 'countdown',
-      requiresSubmission: preset.requiresSubmission || false,
-      requiresMentorReview: preset.requiresMentorReview || false,
-      tasks: preset.tasks || []
-    };
-
-    const updated = [...stages, newStage];
-    provider.saveCustomStages(updated);
-    setShowPresetModal(false);
-  };
-
-  const handleEditStageModalOpen = (stage: CustomStage) => {
-    setEditingStage({ ...stage });
-    setShowStageEditModal(true);
-  };
-
-  const handleSaveEditedStage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingStage || !editingStage.id) return;
-
-    const updated = stages.map(s => s.id === editingStage.id ? (editingStage as CustomStage) : s);
-    await provider.saveCustomStages(updated);
-    setShowStageEditModal(false);
-    setEditingStage(null);
-  };
-
-  const handleDuplicateStage = async (stage: CustomStage) => {
-    const dup: CustomStage = {
-      ...stage,
-      id: `stage_${Date.now()}`,
-      title: `${stage.title} (نسخة)`,
-      order: stages.length + 1
-    };
-    const updated = [...stages, dup];
-    await provider.saveCustomStages(updated);
-  };
-
-  const handleDeleteStage = async (stageId: string) => {
-    if (stages.length <= 1) {
-      alert("يجب الإبقاء على مرحلة واحدة على الأقل.");
-      return;
-    }
-    if (window.confirm("حذف هذه المرحلة؟")) {
-      const updated = stages.filter(s => s.id !== stageId);
-      await provider.saveCustomStages(updated);
-    }
-  };
-
-  const handleMoveStage = async (stageId: string, direction: 'up' | 'down') => {
-    const idx = stages.findIndex(s => s.id === stageId);
-    if (idx < 0) return;
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= stages.length) return;
-
-    const copy = [...stages];
-    const temp = copy[idx];
-    copy[idx] = copy[targetIdx];
-    copy[targetIdx] = temp;
-
-    // re-assign orders
-    copy.forEach((s, i) => { s.order = i + 1; });
-    await provider.saveCustomStages(copy);
-  };
-
-  // --- Task Dispatch (Layer C) ---
-  const handleAddTaskToActiveStage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTaskTitle.trim()) return;
-
-    const newTask: CustomTask = {
-      id: `t_${Date.now()}`,
-      title: newTaskTitle.trim(),
-      type: newTaskType,
-      required: true,
-      order: (tasks.length || 0) + 1,
-      requiresSubmission: newTaskType === 'upload' || newTaskType === 'checkpoint' || newTaskType === 'link'
-    };
-
-    const updatedStages = stages.map(s => {
-      if (s.id === activeStage.id) {
-        return { ...s, tasks: [...(s.tasks || []), newTask] };
-      }
-      return s;
-    });
-
-    await provider.saveCustomStages(updatedStages);
-    setNewTaskTitle('');
-    setShowAddTaskModal(false);
-  };
-
-  const handleSendAnnouncement = async () => {
-    await provider.updateGlobalState({ announcement: announcementInput.trim() || null }, currentUser.id);
-    setAnnouncementInput('');
-    setShowAnnouncementModal(false);
-  };
-
-  const handleOpenGlobalCheckpoint = async () => {
-    if (window.confirm("فتح التسليم ونقطة التحقق لجميع الفرق الآن؟")) {
-      for (const t of teams) {
-        await provider.submitCheckpoint(t.id);
-      }
-      await provider.updateGlobalState({
-        announcement: "[تنبيه عاجل] تم فتح تسليم نقطة التحقق لجميع الفرق."
-      }, currentUser.id);
-    }
-  };
-
-  // Setup view if camp is not live
-  if (globalState.campStatus !== 'live') {
     return (
-      <div className={styles.container}>
-        <div className={styles.setupContainer}>
-          <div className={styles.sectionHeader}>
-            <h2>MISSION INITIALIZATION // اختيار القالب والبدء</h2>
-          </div>
-          
-          <div className={styles.templateCard}>
-            <span className={styles.systemLabel}>OFFICIAL PRESET</span>
-            <h1 className={styles.templateTitle}>FROM ZERO TO MVP</h1>
-            <div className={styles.templateMeta}>
-              3 DAYS · 5 LEVELS · 6 STAGES · 12 MISSIONS
-            </div>
-            <p className={styles.stageDesc}>
-              القالب المعتمد المخصص لنقل المتدربين من صياغة الفكرة حتى إطلاق الـ MVP وعرضه في يوم العروض.
-            </p>
-            <button onClick={() => handleStartLiveCamp(DEFAULT_ZERO2MVP_STAGES)} className={styles.primaryControlBtn}>
-              [ 🚀 بدء المعسكر بهذا القالب ]
-            </button>
-          </div>
-
-          <div className={styles.sectionHeader} style={{ marginTop: '2rem' }}>
-            <h2>REGISTERED SQUADS ({teams.length})</h2>
-          </div>
-          
-          <form onSubmit={handleCreateTeam} style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-            <input 
-              type="text" 
-              placeholder="اسم الفريق الجديد..." 
-              value={newTeamName}
-              onChange={e => setNewTeamName(e.target.value)}
-              className={styles.input}
-              style={{ flex: 1 }}
-            />
-            <button type="submit" className={styles.secondaryControlBtn}>+ إضافة فريق</button>
-          </form>
-
-          <div className={styles.taskList}>
-            {teams.map(t => (
-              <div key={t.id} className={styles.taskRow}>
-                <span><strong>{t.name}</strong> <span className={styles.stageMetaText}>(CODE: {t.joinCode})</span></span>
-                <button onClick={() => handleDeleteTeam(t.id)} className={styles.miniBtnDanger}>حذف</button>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className={styles.container} style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
+        <h2>جاري تحميل غرفة التحكم...</h2>
       </div>
     );
   }
 
+  // Session & Timer Handlers
+  const handleTogglePause = async () => {
+    if (isTimerPaused) {
+      await provider.resumeSession();
+    } else {
+      await provider.pauseSession();
+    }
+  };
+
+  const handleAdjustTimer = async (deltaMins: number) => {
+    await provider.adjustTimer(deltaMins);
+  };
+
+  const handleActivateNext = async () => {
+    if (nextSession) {
+      await provider.activateSession(nextSession.id);
+    }
+  };
+
+  const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await provider.updateGlobalState({ announcement: announcementInput.trim() || null });
+    setShowAnnouncementModal(false);
+  };
+
+  const handleCreateTeamSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTeamNameInput.trim()) return;
+    await provider.createTeam(newTeamNameInput.trim());
+    setNewTeamNameInput('');
+    setShowCreateTeamModal(false);
+  };
+
+  const handleSaveSession = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSession || !editingSession.title) return;
+    
+    const updatedSessions = [...sessions];
+    if (editingSession.id) {
+      const idx = updatedSessions.findIndex(s => s.id === editingSession.id);
+      if (idx >= 0) {
+        updatedSessions[idx] = { ...updatedSessions[idx], ...editingSession } as Session;
+      }
+    } else {
+      const newS: Session = {
+        id: 's_' + Math.random().toString(36).substr(2, 6),
+        title: editingSession.title,
+        subtitle: editingSession.subtitle || '',
+        description: editingSession.description || '',
+        day: (editingSession.day as 1 | 2 | 3) || 1,
+        order: sessions.length + 1,
+        type: editingSession.type || 'work',
+        durationMinutes: editingSession.durationMinutes || 30,
+        timerMode: editingSession.timerMode || 'countdown',
+        status: 'queued',
+        mission: editingSession.mission || {
+          id: 'm_' + Math.random().toString(36).substr(2, 5),
+          title: editingSession.title,
+          description: editingSession.description || '',
+          tasks: []
+        }
+      };
+      updatedSessions.push(newS);
+    }
+
+    await provider.saveSessions(updatedSessions);
+    setShowSessionModal(false);
+    setEditingSession(null);
+  };
+
+  const handleReviewSubmission = async (teamId: string, sessionId: string, status: 'approved' | 'changes_requested') => {
+    await provider.reviewDeliverable(teamId, sessionId, status, reviewFeedbackInput, currentUser?.name || 'المنظّم');
+    setReviewFeedbackInput('');
+    if (selectedTeam) {
+      const updated = teams.find(t => t.id === selectedTeam.id);
+      if (updated) setSelectedTeam(updated);
+    }
+  };
+
+  const handleResolveHelp = async (teamId: string, helpId: string) => {
+    await provider.resolveHelp(teamId, helpId, currentUser?.name || 'المنظّم');
+  };
+
   return (
     <div className={styles.container}>
-      {/* SYSTEM HEADER */}
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <span className={styles.systemLabel}>SYSTEM.ADMIN // MISSION CONTROL 4.0</span>
-          <h1 className={styles.headerTitle}>CAMP OS COMMAND CENTER</h1>
-        </div>
-        <div className={styles.headerMeta}>
-          <div className={styles.metaBadge}>SESSION // LIVE</div>
-          <div className={styles.metaBadge}>TEAMS // {teams.length}</div>
-          <div className={styles.liveIndicator}>
-            <span className={styles.liveDot} />
-            LIVE BCAST
+      {/* TOP NAVIGATION HEADER & WORKSPACE SWITCHER */}
+      <header className={styles.topNav}>
+        <div className={styles.navBrand}>
+          <div className={styles.liveBadge}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-green)' }}></span>
+            <span>LIVE OPERATIONAL HUB</span>
           </div>
+          <span style={{ fontSize: '1.1rem', fontWeight: 900 }}>FROM ZERO TO MVP · CAMP OS</span>
+        </div>
+
+        <div className={styles.workspaceTabs}>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'camp_control' ? styles.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('camp_control')}
+          >
+            🕹️ CAMP CONTROL (غرفة التحكم)
+          </button>
+          <button 
+            className={`${styles.tabBtn} ${activeTab === 'people_teams' ? styles.tabBtnActive : ''}`}
+            onClick={() => setActiveTab('people_teams')}
+          >
+            👥 PEOPLE & TEAMS ({needsAttentionTeams.length > 0 ? `⚠️ ${needsAttentionTeams.length}` : teams.length})
+          </button>
         </div>
       </header>
 
-      {/* 3-LAYER COMMAND GRID */}
-      <div className={styles.commandGrid}>
-        
-        {/* RIGHT (MAIN): LAYER A — LIVE NOW */}
-        <div className={styles.centerStage}>
-          <div className={styles.sectionHeader}>
-            <h2>LAYER A // LIVE NOW</h2>
-            <span className={styles.stageIndex}>STAGE {activeStage.order} / {stages.length}</span>
-          </div>
-
-          <h2 className={styles.stageTitle}>{activeStage.title}</h2>
-          <p className={styles.stageDesc}>{activeStage.description}</p>
-
-          {/* MASSIVE TIMER HUD */}
-          <div className={styles.timerHud}>
-            <span className={styles.timerModeTag}>
-              [ MODE: {timerMode.toUpperCase()} ]
-            </span>
-            
-            {timerMode !== 'hidden' ? (
-              <div className={styles.massiveTimerText}>{formattedTime}</div>
-            ) : (
-              <div className={styles.massiveTimerText} style={{ fontSize: '3rem', opacity: 0.5 }}>[ HIDDEN TIMER ]</div>
-            )}
-
-            <div className={styles.timerStatusText}>
-              STATUS: {isTimerPaused ? 'PAUSED ⏸' : (isTimerRunning ? 'RUNNING ▶' : 'IDLE ⏹')}
+      {/* WORKSPACE 1: CAMP CONTROL */}
+      {activeTab === 'camp_control' && (
+        <div className={styles.campControlGrid}>
+          {/* LEFT: LIVE SESSION FACILITATOR STAGE */}
+          <div className={styles.activeSessionCard}>
+            <div className={styles.sessionHeader}>
+              <span className={styles.sessionTag}>
+                DAY 0{activeSession?.day || 1} · SESSION 0{activeSession?.order || 1}
+              </span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
+                {activeSession?.type?.toUpperCase()}
+              </span>
             </div>
 
-            <div className={styles.timerControlsRow}>
-              <button onClick={toggleTimerPause} className={styles.primaryControlBtn}>
-                {isTimerPaused ? '▶ RESUME TIMER' : '⏸ PAUSE TIMER'}
+            <div>
+              <h1 className={styles.sessionTitle}>
+                {activeSession?.title || 'ترحيب المعسكر والانطلاق'}
+              </h1>
+              <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                {activeSession?.description || 'مرحباً بالجميع في المعسكر.'}
+              </p>
+            </div>
+
+            {/* LIVE TIMER DISPLAY */}
+            <div className={styles.timerBox}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: 2 }}>
+                {timerMode === 'countup' ? 'COUNT UP TIMER' : 'COUNTDOWN TIMER'}
+              </span>
+              <div className={styles.bigTimerText}>{formattedTime}</div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isTimerPaused ? 'var(--color-yellow)' : 'var(--color-green)' }}>
+                {isTimerPaused ? '⏸️ المؤقت متوقف مؤقتاً' : '▶️ المؤقت يعمل الآن'}
+              </div>
+            </div>
+
+            {/* CONTROL BUTTONS */}
+            <div className={styles.controlButtonsRow}>
+              <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={handleTogglePause}>
+                {isTimerPaused ? '▶️ استئناف' : '⏸️ إيقاف مؤقت'}
               </button>
-
-              {timerMode === 'countdown' && (
-                <>
-                  <button onClick={() => handleAdjustTimerMinutes(5)} className={styles.secondaryControlBtn}>+5 MIN</button>
-                  <button onClick={() => handleAdjustTimerMinutes(10)} className={styles.secondaryControlBtn}>+10 MIN</button>
-                  <button onClick={() => handleAdjustTimerMinutes(-1)} className={styles.secondaryControlBtn}>-1 MIN</button>
-                </>
+              <button className={styles.actionBtn} onClick={() => handleAdjustTimer(5)}>
+                +5 دقائق
+              </button>
+              <button className={styles.actionBtn} onClick={() => handleAdjustTimer(10)}>
+                +10 دقائق
+              </button>
+              {nextSession && (
+                <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={handleActivateNext}>
+                  الجلسة التالية: {nextSession.title} ←
+                </button>
               )}
+              <button className={styles.actionBtn} onClick={() => setShowAnnouncementModal(true)}>
+                📢 بث إعلان
+              </button>
+            </div>
+          </div>
 
-              <div style={{ display: 'flex', gap: '0.25rem', marginRight: 'auto' }}>
+          {/* RIGHT: TIMELINE & QUICK ADD */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            <div className={styles.timelineCard}>
+              <div className={styles.timelineHeading}>
+                <span>جدول المعسكر (Run of Show)</span>
                 <button 
-                  onClick={() => handleChangeTimerMode('countdown')} 
-                  className={`${styles.modeToggleBtn} ${timerMode === 'countdown' ? styles.modeToggleBtnActive : ''}`}
+                  className={styles.actionBtn} 
+                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}
+                  onClick={() => { setEditingSession({}); setShowSessionModal(true); }}
                 >
-                  COUNTDOWN
+                  + إضافة جلسة
                 </button>
-                <button 
-                  onClick={() => handleChangeTimerMode('countup')} 
-                  className={`${styles.modeToggleBtn} ${timerMode === 'countup' ? styles.modeToggleBtnActive : ''}`}
-                >
-                  COUNT UP
-                </button>
-                <button 
-                  onClick={() => handleChangeTimerMode('hidden')} 
-                  className={`${styles.modeToggleBtn} ${timerMode === 'hidden' ? styles.modeToggleBtnActive : ''}`}
-                >
-                  HIDDEN
-                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {sessions.map((s, index) => {
+                  const isActive = s.id === activeSession?.id;
+                  return (
+                    <div 
+                      key={s.id} 
+                      className={`${styles.sessionItem} ${isActive ? styles.sessionItemActive : ''}`}
+                      onClick={() => provider.activateSession(s.id)}
+                    >
+                      <div>
+                        <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>
+                          {index + 1}. {s.title}
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          اليوم {s.day} · {s.durationMinutes} دقيقة
+                        </div>
+                      </div>
+
+                      {isActive && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--color-blue)', background: '#EFF6FF', padding: '0.2rem 0.5rem', border: '1px solid var(--color-blue)' }}>
+                          نشطة الآن 🔴
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* QUICK PRESETS ADD */}
+            <div className={styles.timelineCard}>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>إضافة جلسة سريعة (Quick Presets)</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                {Object.entries(SESSION_PRESETS).map(([key, preset]) => (
+                  <button 
+                    key={key}
+                    className={styles.actionBtn}
+                    style={{ fontSize: '0.8rem', padding: '0.5rem', textOverflow: 'ellipsis', overflow: 'hidden' }}
+                    onClick={() => {
+                      setEditingSession({
+                        title: preset.mission?.title || key,
+                        durationMinutes: preset.durationMinutes || 30,
+                        type: preset.type || 'work',
+                        day: 1
+                      });
+                      setShowSessionModal(true);
+                    }}
+                  >
+                    + {key}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* ACTIVE STAGE TASKS PROGRESS */}
-          <div className={styles.missionTasksBox}>
-            <div className={styles.tasksHeader}>
-              <span className={styles.systemLabel}>CURRENT STAGE MISSIONS</span>
-              <span>{completedCount} / {totalTasks} TASKS COMPLETE ({progressPercentage}%)</span>
-            </div>
-            <div className={styles.progressBarBg}>
-              <div className={styles.progressBarFill} style={{ width: `${progressPercentage}%` }} />
+      {/* WORKSPACE 2: PEOPLE & TEAMS */}
+      {activeTab === 'people_teams' && (
+        <div className={styles.peopleWorkspace}>
+          {/* NEEDS ATTENTION QUEUE (FIRST VISIBLE THING) */}
+          <section className={styles.needsAttentionSection}>
+            <div className={styles.needsAttentionHeading}>
+              <span>⚠️ يحتاج تدخل ورعاية المنظم (NEEDS ATTENTION)</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                ({needsAttentionTeams.length} فرق تحتاج مساعدة أو تنتظر المراجعة)
+              </span>
             </div>
 
-            <div className={styles.taskList}>
-              {tasks.length === 0 ? (
-                <span className={styles.stageMetaText}>لا توجد مهام محددة لهذه المرحلة. يمكنك إضافة مهمة من زر Quick Actions.</span>
+            {needsAttentionTeams.length === 0 ? (
+              <p style={{ color: 'var(--text-muted)' }}>جميع الفرق تسير بشكل ممتاز وفي المسار المحدد! ✓</p>
+            ) : (
+              <div className={styles.attentionGrid}>
+                {needsAttentionTeams.map(t => {
+                  const openHelp = t.helpRequests?.find(h => h.status === 'open');
+                  const sub = t.submissions?.[activeSession?.id || ''];
+                  const isPendingSub = sub?.status === 'submitted' || t.checkpointStatus === 'pending';
+
+                  return (
+                    <div key={t.id} className={styles.attentionCard}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className={styles.attentionTitle}>{t.name}</span>
+                        <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '0.8rem', fontWeight: 800 }}>{t.joinCode}</span>
+                      </div>
+
+                      {openHelp && (
+                        <p className={styles.attentionMessage}>
+                          🚨 طلب مساعدة: "{openHelp.message || openHelp.category}" من {openHelp.participantName}
+                        </p>
+                      )}
+
+                      {isPendingSub && (
+                        <p className={styles.attentionMessage} style={{ color: '#B45309' }}>
+                          📄 تسليم مخرج جديد ينتظر مراجعتك واعتمادك
+                        </p>
+                      )}
+
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        {openHelp && (
+                          <button 
+                            className={styles.actionBtn}
+                            style={{ background: 'var(--color-green)', color: '#fff', fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+                            onClick={() => handleResolveHelp(t.id, openHelp.id)}
+                          >
+                            تحديد كتم الحل ✓
+                          </button>
+                        )}
+                        <button 
+                          className={styles.actionBtn}
+                          style={{ fontSize: '0.8rem', padding: '0.4rem 0.75rem' }}
+                          onClick={() => setSelectedTeam(t)}
+                        >
+                          فتح التفاصيل والمراجعة ←
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* TEAM DIRECTORY */}
+          <section className={styles.directorySection}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>دليل الفرق ({teams.length})</h2>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className={styles.actionBtn} onClick={() => setShowAddOrganizerModal(true)}>
+                  + إضافة منظم
+                </button>
+                <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={() => setShowCreateTeamModal(true)}>
+                  + إنشاء فريق جديد
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.teamsGrid}>
+              {teams.map(t => (
+                <div key={t.id} className={styles.teamCard}>
+                  <div className={styles.teamCardHeader}>
+                    <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t.name}</span>
+                    <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '0.85rem', fontWeight: 700 }}>{t.joinCode}</span>
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.25rem' }}>
+                      <span>نسبة الإنجاز:</span>
+                      <span style={{ color: 'var(--color-blue)' }}>{t.progressPercentage || 0}%</span>
+                    </div>
+                    <div className={styles.progressBarBg}>
+                      <div className={styles.progressBarFill} style={{ width: `${t.progressPercentage || 0}%` }} />
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                    الأعضاء ({t.members?.length || 0}): {t.members?.map(m => m.name).join(', ') || 'لا يوجد أعضاء بعد'}
+                  </div>
+
+                  <button className={styles.actionBtn} onClick={() => setSelectedTeam(t)} style={{ marginTop: '0.5rem' }}>
+                    إدارة الفريق والمراجعة ←
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* TEAM DETAIL MODAL */}
+      {selectedTeam && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedTeam(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className={styles.sessionTag}>إدارة الفريق</span>
+              <button onClick={() => setSelectedTeam(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <h2 style={{ fontSize: '1.6rem', fontWeight: 900 }}>{selectedTeam.name} ({selectedTeam.joinCode})</h2>
+
+            <div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.5rem' }}>تسليمات الفريق الحالية</h3>
+              {Object.keys(selectedTeam.submissions || {}).length === 0 ? (
+                <p style={{ color: 'var(--text-muted)' }}>لا توجد تسليمات حتى الآن.</p>
               ) : (
-                tasks.map(t => (
-                  <div key={t.id} className={styles.taskRow}>
-                    <span>{t.title}</span>
-                    <span className={styles.taskTypeBadge}>[{t.type || 'task'}]</span>
+                Object.entries(selectedTeam.submissions).map(([sId, sub]) => (
+                  <div key={sId} style={{ padding: '1rem', background: 'var(--bg-secondary)', border: '1px solid var(--border-main)', marginBottom: '0.75rem' }}>
+                    <div style={{ fontWeight: 800 }}>الجلسة: {sId}</div>
+                    {sub.deliverableUrl && (
+                      <a href={sub.deliverableUrl} target="_blank" rel="noreferrer" style={{ display: 'block', wordBreak: 'break-all', marginTop: '0.25rem' }}>
+                        {sub.deliverableUrl}
+                      </a>
+                    )}
+                    <div style={{ fontSize: '0.85rem', marginTop: '0.5rem', fontWeight: 700, color: sub.status === 'approved' ? 'var(--color-green)' : '#B45309' }}>
+                      الحالة الحالية: {sub.status}
+                    </div>
+
+                    <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <textarea
+                        className={styles.inputField}
+                        rows={2}
+                        placeholder="اكتب ملاحظات وتوجيهات الفريق هنا..."
+                        value={reviewFeedbackInput}
+                        onChange={(e) => setReviewFeedbackInput(e.target.value)}
+                      />
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className={styles.actionBtn} style={{ background: 'var(--color-green)', color: '#fff' }} onClick={() => handleReviewSubmission(selectedTeam.id, sId, 'approved')}>
+                          اعتماد التسليم (Approve) ✓
+                        </button>
+                        <button className={styles.actionBtn} style={{ background: 'var(--color-red)', color: '#fff' }} onClick={() => handleReviewSubmission(selectedTeam.id, sId, 'changes_requested')}>
+                          طلب تعديلات (Request Changes) ⚠️
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 ))
               )}
             </div>
           </div>
-
-          {/* LAYER C: QUICK ACTIONS */}
-          <div className={styles.sectionHeader} style={{ marginTop: '2rem' }}>
-            <h2>LAYER C // QUICK ACTIONS</h2>
-          </div>
-
-          <div className={styles.quickActionsGrid}>
-            <div onClick={() => setShowAddTaskModal(true)} className={styles.quickActionCard}>
-              <span className={styles.quickActionTitle}>+ ADD TASK</span>
-              <span className={styles.quickActionSub}>إضافة مهمة سريعة للمرحلة</span>
-            </div>
-            <div onClick={() => setShowAnnouncementModal(true)} className={styles.quickActionCard}>
-              <span className={styles.quickActionTitle}>ANNOUNCE</span>
-              <span className={styles.quickActionSub}>بث إعلان عام للفرق</span>
-            </div>
-            <div onClick={handleOpenGlobalCheckpoint} className={styles.quickActionCard}>
-              <span className={styles.quickActionTitle}>CHECKPOINT</span>
-              <span className={styles.quickActionSub}>فتح تسليم نـقطة التحقق</span>
-            </div>
-            <div onClick={() => handleAdjustTimerMinutes(5)} className={styles.quickActionCard}>
-              <span className={styles.quickActionTitle}>EXTEND +5</span>
-              <span className={styles.quickActionSub}>تمديد الوقت 5 دقائق</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* LEFT (SIDE): LAYER B — RUN OF SHOW CONTROL TIMELINE */}
-        <div className={styles.timelineZone}>
-          <div className={styles.sectionHeader}>
-            <h2>LAYER B // RUN OF SHOW</h2>
-            <button onClick={handleOpenPresetSelect} className={styles.secondaryControlBtn} style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}>
-              + ADD STAGE
-            </button>
-          </div>
-
-          <div className={styles.timelineList}>
-            {stages.map((stg, idx) => {
-              const isActive = stg.id === activeStage.id;
-              return (
-                <div key={stg.id} className={`${styles.stageCard} ${isActive ? styles.stageCardActive : ''}`}>
-                  <div className={styles.stageCardHeader}>
-                    <span className={styles.stageMetaText}>{String(idx + 1).padStart(2, '0')} // DAY {stg.day || 1}</span>
-                    <span className={`${styles.stageStatusBadge} ${isActive ? styles.badgeLive : styles.badgeQueued}`}>
-                      {isActive ? '● LIVE' : `${stg.durationMinutes} MIN`}
-                    </span>
-                  </div>
-
-                  <span className={styles.stageCardTitle}>{stg.title}</span>
-
-                  <div className={styles.stageCardActions}>
-                    {!isActive && (
-                      <button onClick={() => handleActivateStage(stg.id)} className={styles.miniBtn} style={{ color: '#00f0ff', borderColor: '#00f0ff' }}>
-                        ▶ ACTIVATE
-                      </button>
-                    )}
-                    <button onClick={() => handleEditStageModalOpen(stg)} className={styles.miniBtn}>
-                      ✏ EDIT
-                    </button>
-                    <button onClick={() => handleDuplicateStage(stg)} className={styles.miniBtn}>
-                      📋 DUP
-                    </button>
-                    <button onClick={() => handleMoveStage(stg.id, 'up')} className={styles.miniBtn} disabled={idx === 0}>
-                      ▲
-                    </button>
-                    <button onClick={() => handleMoveStage(stg.id, 'down')} className={styles.miniBtn} disabled={idx === stages.length - 1}>
-                      ▼
-                    </button>
-                    <button onClick={() => handleDeleteStage(stg.id)} className={`${styles.miniBtn} ${styles.miniBtnDanger}`}>
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-      </div>
-
-      {/* TEAM MATRIX SECTION */}
-      <div className={styles.matrixSection}>
-        <div className={styles.sectionHeader}>
-          <h2>LIVE TEAM MATRIX ({teams.length} SQUADS)</h2>
-        </div>
-        <table className={styles.matrixTable}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>TEAM NAME</th>
-              <th>JOIN CODE</th>
-              <th>SUBMISSION STATUS</th>
-              <th>HEALTH STATUS</th>
-              <th>ACTIONS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {teams.map((t, idx) => (
-              <tr key={t.id}>
-                <td className={styles.matrixId}>{String(idx + 1).padStart(2, '0')}</td>
-                <td><strong>{t.name}</strong></td>
-                <td><code className={styles.metaBadge}>{t.joinCode}</code></td>
-                <td>{t.checkpointStatus.toUpperCase()}</td>
-                <td style={{ color: t.healthStatus === 'red' ? '#ff3366' : (t.healthStatus === 'yellow' ? '#ffaa00' : '#00f0ff') }}>
-                  [{t.healthStatus.toUpperCase()}]
-                </td>
-                <td>
-                  <button onClick={() => handleDeleteTeam(t.id)} className={styles.miniBtnDanger}>حذف</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* MODAL: QUICK ADD PRESET */}
-      {showPresetModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>QUICK ADD STAGE PRESETS</h3>
-            <p className={styles.stageDesc}>اختر نموذجاً جاهزاً لإضافته فوراً إلى جدول الـ Run of Show:</p>
-
-            <div className={styles.presetGrid}>
-              {QUICK_ADD_PRESETS.map((preset, idx) => (
-                <div key={idx} onClick={() => handleAddPresetStage(preset)} className={styles.presetCard}>
-                  <span className={styles.presetTitle}>{preset.title}</span>
-                  <span className={styles.presetMeta}>{preset.durationMinutes} MIN · {preset.tasks?.length || 0} TASKS</span>
-                </div>
-              ))}
-            </div>
-
-            <div className={styles.modalActions}>
-              <button onClick={() => setShowPresetModal(false)} className={styles.cancelBtn}>إلغاء</button>
-              <button 
-                onClick={() => handleAddPresetStage({ title: 'مرحلة مخصصة جديدة', durationMinutes: 30, type: 'work' })}
-                className={styles.primaryBtn}
-              >
-                + مرحلة فارغة (BLANK STAGE)
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
-      {/* MODAL: STAGE EDITOR */}
-      {showStageEditModal && editingStage && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>EDIT STAGE CONFIGURATION</h3>
-            <form onSubmit={handleSaveEditedStage}>
-              <div className={styles.formGroup}>
-                <label>العنوان (Stage Title)</label>
-                <input 
-                  type="text" 
-                  value={editingStage.title || ''} 
-                  onChange={e => setEditingStage({ ...editingStage, title: e.target.value })}
-                  className={styles.input}
-                  required
+      {/* CREATE TEAM MODAL */}
+      {showCreateTeamModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowCreateTeamModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>إنشاء فريق جديد</h2>
+            <form onSubmit={handleCreateTeamSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>اسم الفريق</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  placeholder="مثال: Team Nova"
+                  value={newTeamNameInput}
+                  onChange={(e) => setNewTeamNameInput(e.target.value)}
+                  autoFocus
                 />
               </div>
 
-              <div className={styles.formGroup}>
-                <label>الوصف (Description)</label>
-                <textarea 
-                  value={editingStage.description || ''} 
-                  onChange={e => setEditingStage({ ...editingStage, description: e.target.value })}
-                  className={styles.textarea}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div className={styles.formGroup}>
-                  <label>المدة بالدقائق (Duration Minutes)</label>
-                  <input 
-                    type="number" 
-                    value={editingStage.durationMinutes || 30} 
-                    onChange={e => setEditingStage({ ...editingStage, durationMinutes: Number(e.target.value) })}
-                    className={styles.input}
-                    min={1}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label>وضع المؤقت (Timer Mode)</label>
-                  <select 
-                    value={editingStage.timerMode || 'countdown'} 
-                    onChange={e => setEditingStage({ ...editingStage, timerMode: e.target.value as TimerMode })}
-                    className={styles.select}
-                  >
-                    <option value="countdown">COUNTDOWN</option>
-                    <option value="countup">COUNT UP</option>
-                    <option value="hidden">HIDDEN</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className={styles.modalActions}>
-                <button type="button" onClick={() => setShowStageEditModal(false)} className={styles.cancelBtn}>إلغاء</button>
-                <button type="submit" className={styles.primaryBtn}>حفظ التعديلات</button>
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" className={styles.actionBtn} onClick={() => setShowCreateTeamModal(false)} style={{ width: '35%' }}>
+                  إلغاء
+                </button>
+                <button type="submit" className={`${styles.actionBtn} ${styles.primaryActionBtn}`} style={{ width: '65%' }}>
+                  إنشاء الفريق وتوليد الرمز ←
+                </button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL: ADD TASK TO ACTIVE STAGE */}
-      {showAddTaskModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>+ ADD TASK TO ACTIVE STAGE</h3>
-            <form onSubmit={handleAddTaskToActiveStage}>
-              <div className={styles.formGroup}>
-                <label>عنوان المهمة (Task Title)</label>
-                <input 
-                  type="text" 
-                  value={newTaskTitle} 
-                  onChange={e => setNewTaskTitle(e.target.value)} 
-                  className={styles.input} 
-                  required 
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label>نوع المهمة (Task Type)</label>
-                <select 
-                  value={newTaskType} 
-                  onChange={e => setNewTaskType(e.target.value as any)} 
-                  className={styles.select}
-                >
-                  <option value="task">TASK (مهمة عادية)</option>
-                  <option value="checkpoint">CHECKPOINT (نقطة تسليم)</option>
-                  <option value="upload">UPLOAD (تسليم ملحق/ملف)</option>
-                  <option value="link">LINK (رابط مشروع/URL)</option>
-                  <option value="text">TEXT (نص/إجابة)</option>
-                </select>
-              </div>
-              <div className={styles.modalActions}>
-                <button type="button" onClick={() => setShowAddTaskModal(false)} className={styles.cancelBtn}>إلغاء</button>
-                <button type="submit" className={styles.primaryBtn}>إضافة المهمة</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: ANNOUNCEMENT */}
+      {/* BROADCAST ANNOUNCEMENT MODAL */}
       {showAnnouncementModal && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <h3>GLOBAL BROADCAST ANNOUNCEMENT</h3>
-            <div className={styles.formGroup}>
-              <label>نص الإعلان (Announcement Message)</label>
-              <input 
-                type="text" 
-                value={announcementInput} 
-                onChange={e => setAnnouncementInput(e.target.value)} 
-                className={styles.input} 
-                placeholder="أدخل نص الإعلان للفرق..."
-              />
-            </div>
-            <div className={styles.modalActions}>
-              <button type="button" onClick={() => setShowAnnouncementModal(false)} className={styles.cancelBtn}>إلغاء</button>
-              <button type="button" onClick={handleSendAnnouncement} className={styles.primaryBtn}>بث الإعلان</button>
-            </div>
+        <div className={styles.modalOverlay} onClick={() => setShowAnnouncementModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>بث إعلان عام للقاعة والمتدربين</h2>
+            <form onSubmit={handleBroadcastAnnouncement} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>نص الإعلان</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  placeholder="مثال: متبقي 5 دقائق على نهاية سباق البناء الأول!"
+                  value={announcementInput}
+                  onChange={(e) => setAnnouncementInput(e.target.value)}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" className={styles.actionBtn} onClick={() => setShowAnnouncementModal(false)} style={{ width: '35%' }}>
+                  مسح / إلغاء
+                </button>
+                <button type="submit" className={`${styles.actionBtn} ${styles.primaryActionBtn}`} style={{ width: '65%' }}>
+                  بث الإعلان الآن 📢
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

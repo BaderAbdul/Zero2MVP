@@ -1,186 +1,178 @@
-.projectorContainer {
+/* ==================================================================
+   BAUHAUS PUBLIC PROJECTOR — CAMP OS 5.0 (PROJECTOR)
+   ================================================================== */
+
+.projectorShell {
   width: 100vw;
   height: 100vh;
-  background-color: #030807;
-  color: #e2f1f0;
-  font-family: 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-  direction: rtl;
-}
-
-.centerBox {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  width: 90%;
-  max-width: 1200px;
-}
-
-.glitchText {
-  font-size: 5rem;
-  font-weight: 900;
-  color: #ffffff;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: -0.02em;
-}
-
-.subtitle {
-  font-size: 2rem;
-  color: #00f0ff;
-  font-family: 'IBM Plex Mono', monospace;
-  margin-top: 0.5rem;
-}
-
-.projectorTimer {
-  margin-top: 2rem;
-  padding: 1.5rem 3rem;
-  background: #06100f;
-  border: 2px solid #00f0ff;
-  box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
-}
-
-.timerValue {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 6rem;
-  font-weight: 900;
-  color: #00f0ff;
-  line-height: 1;
-}
-
-.timerWarning .timerValue {
-  color: #ff3366;
-  text-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
-}
-
-.announcementBox {
-  margin-top: 2.5rem;
-  background: rgba(0, 240, 255, 0.08);
-  border: 1px solid #00f0ff;
-  color: #00f0ff;
-  padding: 1.25rem 2.5rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.buildScreen {
-  width: 90%;
-  max-width: 1600px;
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
   justify-content: space-between;
+  padding: 3rem 4rem;
+  direction: rtl;
+  position: relative;
 }
 
-.buildHeader {
+.topHeader {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  border-bottom: 2px solid #0e2a28;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 3px solid var(--border-main);
   padding-bottom: 1.5rem;
 }
 
-.headerTitleRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.brandTitle {
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
 }
 
-.phaseTitle {
-  font-size: 3rem;
+.stageBadge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.15rem;
   font-weight: 800;
-  color: #ffffff;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  padding: 0.5rem 1.25rem;
+  background: var(--color-blue);
+  color: #FFFFFF;
+  border: 2px solid var(--border-main);
+  box-shadow: 3px 3px 0px #111111;
 }
 
-.liveDot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #00f0ff;
-  box-shadow: 0 0 12px #00f0ff;
-}
-
-.podiumContainer {
+/* CENTRAL STAGE & HUGE TIMER */
+.centerStage {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  margin-top: 1.5rem;
-  flex: 1;
   justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 1.5rem;
+}
+
+.sessionTitle {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--text-main);
+}
+
+.sessionDesc {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  max-width: 900px;
+  line-height: 1.4;
+}
+
+.timerBox {
+  background: var(--bg-surface);
+  border: 4px solid var(--border-main);
+  box-shadow: 10px 10px 0px #111111;
+  padding: 2.5rem 5rem;
+  margin-top: 1rem;
+}
+
+.timerText {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 8rem;
+  font-weight: 900;
+  color: var(--color-blue);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+/* FULL-SCREEN ANNOUNCEMENT OVERLAY */
+.announcementOverlay {
+  position: absolute;
+  inset: 0;
+  background: var(--color-yellow);
+  color: var(--text-main);
+  border: 8px solid var(--border-main);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 4rem;
+  z-index: 100;
+  gap: 2rem;
+}
+
+.announcementTag {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2rem;
+  font-weight: 900;
+  background: var(--text-main);
+  color: var(--color-yellow);
+  padding: 0.5rem 1.5rem;
+}
+
+.announcementText {
+  font-size: 4rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+/* PODIUM & MOMENTUM SECTION */
+.podiumGrid {
+  width: 100%;
+  max-width: 1100px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .podiumRow {
+  background: var(--bg-surface);
+  border: 2px solid var(--border-main);
+  box-shadow: 4px 4px 0px #111111;
+  padding: 1.25rem 2rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1.5rem;
-  background: #06100f;
-  border: 1px solid #0e2a28;
-  padding: 1rem 1.5rem;
-}
-
-.podiumFirst {
-  border-color: #00f0ff;
-  background: rgba(0, 240, 255, 0.04);
 }
 
 .podiumRank {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 1.5rem;
-  font-weight: 800;
-  color: #00f0ff;
-  width: 50px;
+  font-weight: 900;
+  color: var(--color-blue);
+  width: 40px;
 }
 
 .podiumName {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ffffff;
-  width: 250px;
+  font-size: 1.6rem;
+  font-weight: 800;
+  width: 280px;
 }
 
-.podiumBarContainer {
+.podiumBarBg {
   flex: 1;
-  height: 12px;
-  background: #030807;
-  border: 1px solid #0e2a28;
+  height: 16px;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-main);
   overflow: hidden;
 }
 
 .podiumBarFill {
   height: 100%;
-  background: #00f0ff;
-  box-shadow: 0 0 10px #00f0ff;
+  background: var(--color-blue);
 }
 
-.podiumScore {
-  font-family: 'IBM Plex Mono', monospace;
+/* BOTTOM UP NEXT FOOTER */
+.bottomFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 3px solid var(--border-main);
+  padding-top: 1.5rem;
   font-size: 1.25rem;
-  font-weight: 800;
-  color: #00f0ff;
-  width: 80px;
-  text-align: left;
-}
-
-.massiveTeamName {
-  font-size: 4.5rem;
-  font-weight: 900;
-  color: #ffffff;
-  margin: 1rem 0;
-}
-
-.loading {
-  font-family: 'IBM Plex Mono', monospace;
-  color: #00f0ff;
-  font-size: 1.5rem;
+  font-weight: 700;
 }

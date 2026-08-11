@@ -3,51 +3,37 @@ import {
   query, where, addDoc, getDocs, runTransaction, deleteDoc, arrayUnion
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { DataProvider, GlobalState, Team, Task, DemoDayScore, CampStage, AuditLogEventType, Intervention, User, CustomStage } from './types';
-import { DEFAULT_ZERO2MVP_STAGES } from './campEngine';
-
-const ALLOWED_TRANSITIONS: Record<string, string[]> = {
-  'setup': ['welcome'],
-  'welcome': ['ideation', 'setup'],
-  'ideation': ['build', 'welcome'],
-  'build': ['checkpoint', 'pitch_prep'],
-  'checkpoint': ['break', 'pitch_prep', 'build'],
-  'pitch_prep': ['demo_day_queue', 'build'],
-  'demo_day_queue': ['demo_day_intro', 'finished'],
-  'demo_day_intro': ['demo_day_presenting', 'demo_day_queue'],
-  'demo_day_presenting': ['demo_day_judging'],
-  'demo_day_judging': ['demo_day_reveal'],
-  'demo_day_reveal': ['demo_day_queue'],
-  'break': ['setup', 'welcome', 'ideation', 'build', 'checkpoint', 'pitch_prep'],
-  'finished': ['setup']
-};
+import { 
+  DataProvider, GlobalState, Team, Task, DemoDayScore, 
+  AuditLogEventType, User, Session, TaskStatus, 
+  HelpCategory, TeamSubmission, Organizer 
+} from './types';
+import { DEFAULT_ZERO2MVP_SESSIONS } from './campEngine';
 
 export class FirebaseProvider implements DataProvider {
   subscribeToGlobalState(callback: (state: GlobalState) => void): () => void {
     const unsub = onSnapshot(doc(db, 'camp_os', 'global_state'), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data() as GlobalState;
-        if (!data.customStages || data.customStages.length === 0) {
-          data.customStages = DEFAULT_ZERO2MVP_STAGES;
+        if (!data.sessions || data.sessions.length === 0) {
+          data.sessions = DEFAULT_ZERO2MVP_SESSIONS;
         }
-        if (!data.activeCustomStageId && data.customStages.length > 0) {
-          data.activeCustomStageId = data.customStages[0].id;
+        if (!data.activeSessionId && data.sessions.length > 0) {
+          data.activeSessionId = data.sessions[0].id;
         }
         callback(data);
       } else {
         callback({
-          campStatus: 'setup',
-          currentPhase: 'setup',
-          activeDemoTeamId: null,
-          nextDemoTeamId: null,
+          campCode: 'Z2MVP',
+          campStatus: 'welcome',
+          isCampPaused: false,
+          activeSessionId: DEFAULT_ZERO2MVP_SESSIONS[0].id,
+          sessions: DEFAULT_ZERO2MVP_SESSIONS,
           announcement: null,
           timerEndTime: null,
           timerStartTime: null,
           timerMode: 'countdown',
-          isTimerPaused: false,
-          customStages: DEFAULT_ZERO2MVP_STAGES,
-          activeCustomStageId: DEFAULT_ZERO2MVP_STAGES[0].id,
-          revealScores: false
+          isTimerPaused: false
         } as GlobalState);
       }
     });
@@ -99,10 +85,10 @@ export class FirebaseProvider implements DataProvider {
     return unsub;
   }
 
-  subscribeToInterventions(teamId: string, callback: (interventions: Intervention[]) => void): () => void {
+  subscribeToInterventions(teamId: string, callback: (interventions: any[]) => void): () => void {
     const q = query(collection(db, `teams/${teamId}/interventions`));
     const unsub = onSnapshot(q, (snapshot) => {
-      const ints = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }) as Intervention);
+      const ints = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       callback(ints);
     });
     return unsub;
@@ -119,52 +105,48 @@ export class FirebaseProvider implements DataProvider {
         timestamp: Date.now()
       });
     } catch (e: any) {
-      console.warn('Audit log failed (expected in local mock without rules):', e.message);
+      console.warn('Audit log failed:', e.message);
     }
   }
 
   async updateGlobalState(updates: Partial<GlobalState>, actorId?: string): Promise<void> {
     const ref = doc(db, 'camp_os', 'global_state');
-    const snap = await getDoc(ref);
-    
-    if (snap.exists() && updates.currentPhase) {
-      const currentState = snap.data() as GlobalState;
-      const currentPhase = currentState.currentPhase;
-      const newPhase = updates.currentPhase;
-      
-      if (currentPhase !== newPhase && currentPhase !== 'break') {
-        const allowed = ALLOWED_TRANSITIONS[currentPhase] || [];
-        if (!allowed.includes(newPhase)) {
-          console.warn(`Legacy phase transition bypass: ${currentPhase} -> ${newPhase}`);
-        }
-      }
-    }
-
     await updateDoc(ref, updates);
   }
 
-  async saveCustomStages(stages: CustomStage[]): Promise<void> {
+  async saveSessions(sessions: Session[]): Promise<void> {
     const ref = doc(db, 'camp_os', 'global_state');
-    await updateDoc(ref, { customStages: stages });
+    await updateDoc(ref, { sessions });
   }
 
-  async activateCustomStage(stageId: string): Promise<void> {
+  async saveCustomStages(stages: any[]): Promise<void> {
+    await this.saveSessions(stages as Session[]);
+  }
+
+  async activateSession(sessionId: string): Promise<void> {
     const ref = doc(db, 'camp_os', 'global_state');
     const snap = await getDoc(ref);
     if (!snap.exists()) return;
 
     const data = snap.data() as GlobalState;
-    const stages = data.customStages || DEFAULT_ZERO2MVP_STAGES;
-    const targetStage = stages.find(s => s.id === stageId);
+    const sessions = data.sessions || DEFAULT_ZERO2MVP_SESSIONS;
+    const targetSession = sessions.find(s => s.id === sessionId);
 
-    if (!targetStage) return;
+    if (!targetSession) return;
 
     const now = Date.now();
-    const durationMs = (targetStage.durationMinutes || 30) * 60 * 1000;
+    const durationMs = (targetSession.durationMinutes || 30) * 60 * 1000;
+
+    const updatedSessions = sessions.map(s => {
+      if (s.id === sessionId) return { ...s, status: 'active' as const };
+      if (s.order < targetSession.order) return { ...s, status: 'completed' as const };
+      return { ...s, status: 'queued' as const };
+    });
 
     await updateDoc(ref, {
-      activeCustomStageId: stageId,
-      timerMode: targetStage.timerMode || 'countdown',
+      sessions: updatedSessions,
+      activeSessionId: sessionId,
+      timerMode: targetSession.timerMode || 'countdown',
       timerStartTime: now,
       timerEndTime: now + durationMs,
       isTimerPaused: false,
@@ -172,7 +154,107 @@ export class FirebaseProvider implements DataProvider {
       timerPausedRemainingMs: durationMs
     });
 
-    await this.logAudit('STAGE_ACTIVATED', undefined, 'organizer', stageId, { title: targetStage.title });
+    await this.logAudit('STAGE_ACTIVATED', undefined, 'organizer', sessionId, { title: targetSession.title });
+  }
+
+  async activateCustomStage(stageId: string): Promise<void> {
+    await this.activateSession(stageId);
+  }
+
+  async pauseSession(): Promise<void> {
+    const ref = doc(db, 'camp_os', 'global_state');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as GlobalState;
+    const now = Date.now();
+
+    if (data.timerMode === 'countdown' && data.timerEndTime) {
+      const remaining = Math.max(0, data.timerEndTime - now);
+      await updateDoc(ref, { isTimerPaused: true, timerPausedRemainingMs: remaining });
+    } else if (data.timerMode === 'countup') {
+      await updateDoc(ref, { isTimerPaused: true, timerPausedAt: now });
+    }
+  }
+
+  async resumeSession(): Promise<void> {
+    const ref = doc(db, 'camp_os', 'global_state');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as GlobalState;
+    const now = Date.now();
+
+    if (data.timerMode === 'countdown') {
+      const remaining = data.timerPausedRemainingMs || 0;
+      await updateDoc(ref, { isTimerPaused: false, timerEndTime: now + remaining, timerPausedRemainingMs: null });
+    } else if (data.timerMode === 'countup') {
+      const pausedAt = data.timerPausedAt || now;
+      const pausedDuration = now - pausedAt;
+      const adjustedStart = (data.timerStartTime || now) + pausedDuration;
+      await updateDoc(ref, { isTimerPaused: false, timerStartTime: adjustedStart, timerPausedAt: null });
+    }
+  }
+
+  async pauseCamp(): Promise<void> {
+    await this.updateGlobalState({ isCampPaused: true, campStatus: 'paused' });
+  }
+
+  async resumeCamp(): Promise<void> {
+    await this.updateGlobalState({ isCampPaused: false, campStatus: 'live' });
+  }
+
+  async adjustTimer(minutesDelta: number): Promise<void> {
+    const ref = doc(db, 'camp_os', 'global_state');
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as GlobalState;
+    const currentEnd = data.timerEndTime || Date.now();
+    const newEnd = Math.max(Date.now(), currentEnd + (minutesDelta * 60 * 1000));
+    await updateDoc(ref, { timerEndTime: newEnd });
+  }
+
+  async createTeam(name: string, customCode?: string): Promise<Team> {
+    const id = 'team-' + name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random()*1000);
+    const joinCode = customCode || 'Z2MVP-' + Math.floor(10 + Math.random() * 90);
+    
+    const newTeam: Team = {
+      id,
+      name,
+      joinCode,
+      members: [],
+      projectIdea: 'لم يحدد بعد',
+      currentStageId: 's_day1_welcome',
+      progressPercentage: 0,
+      momentumScore: 0,
+      taskStatuses: {},
+      completedTaskIds: [],
+      submissions: {},
+      helpRequests: [],
+      healthStatus: 'green',
+      checkpointStatus: 'idle'
+    };
+
+    await setDoc(doc(db, 'teams', id), newTeam);
+    return newTeam;
+  }
+
+  async joinTeam(joinCode: string, participantName: string, participantId?: string): Promise<{ teamId: string; participantId: string }> {
+    const q = query(collection(db, 'teams'), where('joinCode', '==', joinCode));
+    const snaps = await getDocs(q);
+    if (snaps.empty) {
+      throw new Error("رمز الانضمام غير صحيح.");
+    }
+    const teamDoc = snaps.docs[0];
+    const teamId = teamDoc.id;
+    const pid = participantId || 'p-' + Math.random().toString(36).substr(2, 7);
+
+    const teamData = teamDoc.data() as Team;
+    const members = teamData.members || [];
+    if (!members.find(m => m.id === pid)) {
+      members.push({ id: pid, name: participantName, joinedAt: Date.now() });
+      await updateDoc(doc(db, 'teams', teamId), { members });
+    }
+
+    return { teamId, participantId: pid };
   }
 
   async updateTeam(teamId: string, updates: Partial<Team>): Promise<void> {
@@ -180,123 +262,146 @@ export class FirebaseProvider implements DataProvider {
     await updateDoc(ref, updates);
   }
 
+  async deleteTeam(teamId: string): Promise<void> {
+    await deleteDoc(doc(db, 'teams', teamId));
+  }
+
+  async updateTaskStatus(teamId: string, taskId: string, status: TaskStatus): Promise<void> {
+    const ref = doc(db, 'teams', teamId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as Team;
+    const taskStatuses = data.taskStatuses || {};
+    taskStatuses[taskId] = status;
+
+    const completedTaskIds = Object.keys(taskStatuses).filter(id => taskStatuses[id] === 'completed');
+    await updateDoc(ref, { taskStatuses, completedTaskIds });
+  }
+
   async submitTask(teamId: string, taskId: string): Promise<void> {
-    const teamRef = doc(db, 'teams', teamId);
-    await updateDoc(teamRef, { 
-      completedTaskIds: arrayUnion(taskId)
+    await this.updateTaskStatus(teamId, taskId, 'completed');
+  }
+
+  async submitDeliverable(teamId: string, sessionId: string, deliverableUrl: string, textAnswer?: string): Promise<void> {
+    const ref = doc(db, 'teams', teamId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as Team;
+    const submissions = data.submissions || {};
+
+    submissions[sessionId] = {
+      sessionId,
+      deliverableUrl,
+      textAnswer,
+      status: 'submitted',
+      submittedAt: Date.now()
+    };
+
+    await updateDoc(ref, { 
+      submissions, 
+      checkpointStatus: 'pending',
+      submittedDeliverableUrl: deliverableUrl 
     });
-    await this.logAudit('MISSION_COMPLETED', undefined, undefined, teamId, { taskId });
+  }
+
+  async reviewDeliverable(teamId: string, sessionId: string, status: 'approved' | 'changes_requested', feedback?: string, reviewerName?: string): Promise<void> {
+    const ref = doc(db, 'teams', teamId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as Team;
+    const submissions = data.submissions || {};
+    const existing = submissions[sessionId] || { sessionId, submittedAt: Date.now() };
+
+    submissions[sessionId] = {
+      ...existing,
+      status,
+      organizerFeedback: feedback || '',
+      reviewedAt: Date.now(),
+      reviewerName: reviewerName || 'المنظّم'
+    };
+
+    await updateDoc(ref, { 
+      submissions,
+      checkpointStatus: status === 'approved' ? 'approved' : 'rejected',
+      healthStatus: status === 'approved' ? 'green' : 'yellow'
+    });
   }
 
   async submitCheckpoint(teamId: string): Promise<void> {
     const ref = doc(db, 'teams', teamId);
     await updateDoc(ref, { checkpointStatus: 'pending' });
-    await this.logAudit('CHECKPOINT_SUBMITTED', undefined, undefined, teamId);
   }
 
-  async approveCheckpoint(teamId: string, nextStage: CampStage, mentorId: string): Promise<void> {
+  async approveCheckpoint(teamId: string, nextStage: string, mentorId: string): Promise<void> {
     const ref = doc(db, 'teams', teamId);
-    await updateDoc(ref, { 
-      checkpointStatus: 'approved',
-      currentStage: nextStage
-    });
-    await this.logAudit('CHECKPOINT_APPROVED', mentorId, 'mentor', teamId, { nextStage });
+    await updateDoc(ref, { checkpointStatus: 'approved', currentStageId: nextStage });
+  }
+
+  async requestHelp(teamId: string, participantName: string, category: HelpCategory, message?: string): Promise<void> {
+    const ref = doc(db, 'teams', teamId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as Team;
+    const helpRequests = data.helpRequests || [];
+
+    const newReq = {
+      id: 'help-' + Math.random().toString(36).substr(2, 7),
+      teamId,
+      participantName,
+      category,
+      message,
+      status: 'open' as const,
+      createdAt: Date.now()
+    };
+
+    helpRequests.push(newReq);
+    await updateDoc(ref, { helpRequests, healthStatus: 'red' });
   }
 
   async requestIntervention(teamId: string, participantId: string): Promise<void> {
-    const teamRef = doc(db, 'teams', teamId);
-    const snap = await getDoc(teamRef);
-    if (snap.exists() && snap.data().healthStatus !== 'green') {
-      throw new Error("Team already has an active intervention.");
-    }
-    
-    await updateDoc(teamRef, { healthStatus: 'red' });
-    
-    await addDoc(collection(db, `teams/${teamId}/interventions`), {
-      teamId,
-      participantId,
-      status: 'open',
-      createdAt: Date.now()
+    await this.requestHelp(teamId, participantId, 'other', 'طلب مساعدة زمني');
+  }
+
+  async claimHelp(teamId: string, helpRequestId: string, organizerName: string): Promise<void> {
+    const ref = doc(db, 'teams', teamId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as Team;
+    const helpRequests = (data.helpRequests || []).map(h => {
+      if (h.id === helpRequestId) return { ...h, status: 'claimed' as const, claimedBy: organizerName };
+      return h;
     });
-    await this.logAudit('INTERVENTION_REQUESTED', participantId, 'participant', teamId);
+    await updateDoc(ref, { helpRequests, healthStatus: 'yellow' });
   }
 
   async claimIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void> {
-    const intRef = doc(db, `teams/${teamId}/interventions`, interventionId);
-    await updateDoc(intRef, {
-      status: 'claimed',
-      mentorId,
-      claimedAt: Date.now()
+    await this.claimHelp(teamId, interventionId, mentorId);
+  }
+
+  async resolveHelp(teamId: string, helpRequestId: string, organizerName: string): Promise<void> {
+    const ref = doc(db, 'teams', teamId);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return;
+    const data = snap.data() as Team;
+    const helpRequests = (data.helpRequests || []).map(h => {
+      if (h.id === helpRequestId) return { ...h, status: 'resolved' as const, resolvedAt: Date.now() };
+      return h;
     });
-    await updateDoc(doc(db, 'teams', teamId), { healthStatus: 'yellow' });
-    await this.logAudit('INTERVENTION_CLAIMED', mentorId, 'mentor', teamId, { interventionId });
+    await updateDoc(ref, { helpRequests, healthStatus: 'green' });
   }
 
   async resolveIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void> {
-    const intRef = doc(db, `teams/${teamId}/interventions`, interventionId);
-    await updateDoc(intRef, {
-      status: 'resolved',
-      resolvedAt: Date.now()
-    });
-    await updateDoc(doc(db, 'teams', teamId), { healthStatus: 'green' });
-    await this.logAudit('INTERVENTION_RESOLVED', mentorId, 'mentor', teamId, { interventionId });
+    await this.resolveHelp(teamId, interventionId, mentorId);
   }
 
   async submitJudgeScore(score: Omit<DemoDayScore, 'id' | 'totalScore'>): Promise<void> {
-    const total = Object.values(score.scores).reduce((a, b) => a + b, 0);
+    const total = Object.values(score.scores).reduce((a: number, b: number) => a + b, 0);
     const deterministicId = `${score.teamId}_${score.judgeId}`;
     
     await setDoc(doc(db, 'demo_scores', deterministicId), {
       ...score,
       totalScore: total
     });
-    
-    await this.logAudit('SCORES_SUBMITTED', score.judgeId, 'judge', score.teamId, { totalScore: total });
-  }
-
-  async joinTeam(joinCode: string, participantId: string): Promise<string> {
-    const q = query(collection(db, 'teams'), where('joinCode', '==', joinCode));
-    const snaps = await getDocs(q);
-    if (snaps.empty) {
-      throw new Error("Invalid join code.");
-    }
-    const teamId = snaps.docs[0].id;
-    
-    await runTransaction(db, async (transaction) => {
-      const userRef = doc(db, 'users', participantId);
-      const userDoc = await transaction.get(userRef);
-      if (!userDoc.exists()) {
-        throw new Error("User does not exist.");
-      }
-      if (userDoc.data().teamId) {
-        throw new Error("You are already assigned to a team.");
-      }
-      
-      transaction.update(userRef, { teamId, joinCode });
-    });
-    return teamId;
-  }
-
-  async createTeam(name: string): Promise<void> {
-    const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Math.floor(Math.random()*1000);
-    const joinCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    
-    await setDoc(doc(db, 'teams', id), {
-      id,
-      name,
-      joinCode,
-      projectIdea: 'TBD',
-      currentStage: 'ideation',
-      progressPercentage: 0,
-      healthStatus: 'green',
-      checkpointStatus: 'idle',
-      demoDayTotalScore: 0,
-      completedTaskIds: []
-    });
-  }
-
-  async deleteTeam(teamId: string): Promise<void> {
-    await deleteDoc(doc(db, 'teams', teamId));
   }
 
   async resetState(): Promise<void> {
@@ -306,23 +411,21 @@ export class FirebaseProvider implements DataProvider {
   async seedDatabase(): Promise<void> {
     const globalStateRef = doc(db, 'camp_os', 'global_state');
     await setDoc(globalStateRef, {
+      campCode: 'Z2MVP',
       campStatus: 'live',
-      currentPhase: 'welcome',
-      activeCustomStageId: DEFAULT_ZERO2MVP_STAGES[0].id,
-      customStages: DEFAULT_ZERO2MVP_STAGES,
-      activeDemoTeamId: null,
+      isCampPaused: false,
+      activeSessionId: DEFAULT_ZERO2MVP_SESSIONS[0].id,
+      sessions: DEFAULT_ZERO2MVP_SESSIONS,
       announcement: null,
       timerEndTime: Date.now() + 20 * 60 * 1000,
       timerStartTime: Date.now(),
       timerMode: 'countdown',
-      isTimerPaused: false,
-      revealScores: false
+      isTimerPaused: false
     });
 
-    const teams = [
-      { id: 'team-alpha', name: 'Team Alpha', joinCode: 'ALPHA1', projectIdea: 'AI coding assistant', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] },
-      { id: 'team-nova', name: 'Team Nova', joinCode: 'NOVA02', projectIdea: 'Smart calendar', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] },
-      { id: 'team-omega', name: 'Team Omega', joinCode: 'OMEGA3', projectIdea: 'Auto documenter', currentStage: 'ideation', progressPercentage: 0, healthStatus: 'green', checkpointStatus: 'idle', demoDayTotalScore: 0, completedTaskIds: [] }
+    const teams: Team[] = [
+      { id: 'team-orbit', name: 'Team Orbit', joinCode: 'Z2MVP-42', members: [{ id: 'p1', name: 'بدر', joinedAt: Date.now() }], projectIdea: 'AI coding assistant', currentStageId: 's_day1_welcome', progressPercentage: 20, momentumScore: 80, taskStatuses: {}, completedTaskIds: [], submissions: {}, helpRequests: [], healthStatus: 'green', checkpointStatus: 'idle' },
+      { id: 'team-namaa', name: 'Team Namaa', joinCode: 'Z2MVP-18', members: [{ id: 'p2', name: 'سارة', joinedAt: Date.now() }], projectIdea: 'Smart calendar', currentStageId: 's_day1_welcome', progressPercentage: 10, momentumScore: 60, taskStatuses: {}, completedTaskIds: [], submissions: {}, helpRequests: [], healthStatus: 'green', checkpointStatus: 'idle' }
     ];
 
     for (const t of teams) {

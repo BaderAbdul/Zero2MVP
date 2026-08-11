@@ -1,0 +1,363 @@
+/* ==================================================================
+   BAUHAUS EDITORIAL LAYOUT — CAMP OS 5.0 WELCOME EXPERIENCE
+   ================================================================== */
+
+.pageShell {
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow-x: hidden;
+  direction: rtl;
+}
+
+/* Top Structural Header Line */
+.topNav {
+  width: 100%;
+  padding: 1.5rem 2.5rem;
+  border-bottom: 2px solid var(--border-main);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-main);
+  z-index: 10;
+}
+
+.brandLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.blueDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-blue);
+  display: inline-block;
+}
+
+.subBrandLabel {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: -0.02em;
+}
+
+/* Main Asymmetrical Grid Canvas */
+.gridCanvas {
+  flex: 1;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem 2.5rem;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 3.5rem;
+  align-items: center;
+  position: relative;
+}
+
+/* Right Editorial Column (Typography & Message) */
+.heroColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  position: relative;
+}
+
+.heroTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-main);
+  box-shadow: 2px 2px 0px #111111;
+  font-size: 0.85rem;
+  font-weight: 700;
+  width: fit-content;
+  color: var(--text-main);
+}
+
+.heroTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mainTitle {
+  font-size: 4.5rem;
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
+}
+
+.highlightText {
+  color: var(--color-blue);
+  position: relative;
+}
+
+.mainSubline {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-top: 0.75rem;
+}
+
+/* Geometric Metric Blocks (Bauhaus Rules) */
+.metricsGrid {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.metricCard {
+  flex: 1;
+  padding: 1.25rem 1rem;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-main);
+  box-shadow: 3px 3px 0px #111111;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+.metricValue {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.metricLabel {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* Left Form / Action Column */
+.actionColumn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+}
+
+.actionCard {
+  width: 100%;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-main);
+  box-shadow: 6px 6px 0px #111111;
+  padding: 2.75rem 2.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  position: relative;
+}
+
+.stepHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1.5px solid var(--border-subtle);
+}
+
+.stepCounter {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--color-blue);
+  background: rgba(36, 87, 255, 0.08);
+  padding: 0.25rem 0.65rem;
+  border: 1px solid var(--color-blue);
+}
+
+.stepTitle {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.stepDesc {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Input Fields & Buttons */
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.inputField {
+  width: 100%;
+  padding: 1.15rem 1.25rem;
+  background: var(--bg-main);
+  border: 2px solid var(--border-main);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.inputField:focus {
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(36, 87, 255, 0.15);
+}
+
+.primaryBtn {
+  width: 100%;
+  padding: 1.25rem 1.5rem;
+  background: var(--color-blue);
+  color: #FFFFFF;
+  border: 2px solid var(--border-main);
+  box-shadow: 4px 4px 0px #111111;
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.primaryBtn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px #111111;
+}
+
+.primaryBtn:active {
+  transform: translate(0px, 0px);
+  box-shadow: 2px 2px 0px #111111;
+}
+
+.secondaryBtn {
+  width: 100%;
+  padding: 1.1rem 1.25rem;
+  background: var(--bg-surface);
+  color: var(--text-main);
+  border: 2px solid var(--border-main);
+  box-shadow: 3px 3px 0px #111111;
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.secondaryBtn:hover {
+  background: var(--bg-secondary);
+}
+
+.errorBanner {
+  padding: 0.85rem 1.15rem;
+  background: #FEE2E2;
+  border: 1.5px solid var(--color-red);
+  color: var(--color-red);
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.successBox {
+  padding: 1.5rem;
+  background: var(--bg-secondary);
+  border: 2px dashed var(--border-main);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.65rem;
+}
+
+.successCode {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 2.25rem;
+  font-weight: 900;
+  color: var(--color-blue);
+  letter-spacing: 2px;
+}
+
+.footerBar {
+  width: 100%;
+  padding: 1.5rem 2.5rem;
+  border-top: 1.5px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 960px) {
+  .gridCanvas {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .mainTitle {
+    font-size: 3.25rem;
+  }
+
+  .mainSubline {
+    font-size: 1.15rem;
+  }
+
+  .actionCard {
+    padding: 2rem 1.5rem;
+  }
+}
+
+@media (max-width: 580px) {
+  .topNav {
+    padding: 1.25rem 1.25rem;
+  }
+
+  .mainTitle {
+    font-size: 2.65rem;
+  }
+
+  .metricsGrid {
+    gap: 0.5rem;
+  }
+
+  .metricCard {
+    padding: 1rem 0.75rem;
+  }
+
+  .metricValue {
+    font-size: 1.6rem;
+  }
+}

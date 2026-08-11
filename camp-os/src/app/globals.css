@@ -1,34 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
 :root {
-  /* Surface Colors (Deep Graphite, Editorial, Technical) */
-  --bg-main: #030303;       /* Pure near-black for operating system feel */
-  --bg-elevated: #0a0a0a;   /* Slightly lifted */
-  --bg-card: #0a0a0a;       /* Remove lighter cards */
-  --bg-card-hover: #111111; /* Very subtle hover */
+  /* BAUHAUS DESIGN PALETTE */
+  --bg-main: #F7F5F0;          /* Warm Off-White Editorial Canvas */
+  --bg-surface: #FFFFFF;       /* Pure White Containers */
+  --bg-secondary: #EFECE6;     /* Subtle Off-White Sections */
   
-  /* Borders (Technical Lines) */
-  --border-subtle: #1a1a1a; /* Almost invisible */
-  --border-strong: #333333; /* High contrast structural lines */
-  --border-focus: #00f0ff;  /* Electric Cyan */
+  /* Structural Borders & Lines */
+  --border-main: #111111;      /* Crisp Structural Black Borders */
+  --border-subtle: #E2DED4;    /* Light Architectural Divider */
+  --border-focus: #2457FF;     /* Geometric Blue Selection */
 
   /* Typography Colors */
-  --text-main: #ffffff;     /* Pure white for contrast */
-  --text-secondary: #888888;/* High end grey */
-  --text-muted: #555555;    /* Subtle metadata */
-  --text-inverse: #000000;
+  --text-main: #111111;        /* Deep Charcoal / Pure Black */
+  --text-secondary: #4A4A4A;   /* Editorial Secondary Gray */
+  --text-muted: #7A7A7A;       /* Subtle Metadata */
+  --text-inverse: #FFFFFF;     /* White on Dark */
 
-  /* Semantic Colors (Signals) */
-  --color-accent: #00f0ff;      /* Electric Cyan */
-  --color-accent-glow: rgba(0, 240, 255, 0.15);
-  --color-success: #00ff66;     /* Matrix Green */
-  --color-warning: #ffb800;     /* Warning Amber */
-  --color-danger: #ff003c;      /* Critical Red */
-  --color-disabled: #222222;    /* Dead state */
+  /* Primary Geometric Colors */
+  --color-blue: #2457FF;       /* Primary Action / Momentum */
+  --color-red: #E53935;        /* Critical Alert / Attention */
+  --color-yellow: #F5C542;     /* Warning / Highlight */
+  --color-green: #2E9B62;      /* Success / Milestone */
 
-  /* Layout & Spacing */
-  --radius-sm: 0px; /* Sharp technical edges */
-  --radius-md: 2px;
-  --radius-lg: 4px;
-  --radius-pill: 9999px; /* Keep pill for specific badges */
+  /* Layout & Geometry */
+  --radius-none: 0px;          /* Pure Geometric Corners */
+  --radius-sm: 4px;            /* Slight Soft Edge */
+  --radius-pill: 9999px;       /* Status Badges */
+  
+  --shadow-bauhaus: 4px 4px 0px #111111; /* Geometric Shadow */
+  --shadow-subtle: 0px 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* Base Reset */
@@ -43,53 +44,55 @@ html, body {
   min-height: 100vh;
   background-color: var(--bg-main);
   color: var(--text-main);
-  font-family: 'IBM Plex Sans Arabic', 'Inter', system-ui, sans-serif;
+  font-family: 'IBM Plex Sans Arabic', -apple-system, BlinkMacSystemFont, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.5;
+  line-height: 1.6;
+  direction: rtl;
 }
 
-/* Global Typography Overrides */
+/* Global Typography Hierarchy */
 h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: 700;
-  letter-spacing: normal; /* Do not use letter spacing for futuristic style */
+  color: var(--text-main);
+  letter-spacing: -0.01em;
 }
 
 a {
-  color: var(--color-accent);
+  color: var(--color-blue);
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 a:hover {
-  text-shadow: 0 0 10px var(--color-accent-glow);
+  opacity: 0.85;
 }
 
-/* Custom Scrollbar for a premium feel */
+/* Monospace Metadata */
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: -0.02em;
+}
+
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
   background: var(--bg-main);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 0;
+  background: var(--border-subtle);
+  border: 1px solid var(--border-main);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--text-main);
 }
 
 /* Selection */
 ::selection {
-  background: var(--color-accent);
-  color: #000;
-}
-
-/* System Fonts for monospace / metrics */
-.font-mono {
-  font-family: 'IBM Plex Mono', 'Courier New', monospace;
-  letter-spacing: -0.02em;
+  background: var(--color-yellow);
+  color: var(--text-main);
 }

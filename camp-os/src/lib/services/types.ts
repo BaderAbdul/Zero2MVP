@@ -1,87 +1,176 @@
-export type CampPhase = 
-  | 'setup'
-  | 'welcome'
-  | 'ideation'
-  | 'build'
-  | 'checkpoint'
-  | 'break'
-  | 'demo_day_queue'
-  | 'demo_day_intro'
-  | 'demo_day_presenting'
-  | 'demo_day_judging'
-  | 'demo_day_reveal'
-  | 'finished';
+// ==================================================================
+// CAMP OS 5.0 — CANONICAL DATA MODEL & CONTRACTS
+// FROM ZERO TO MVP (3-DAY AI PRODUCT BUILDER CAMP)
+// ==================================================================
 
-export type CampStatus = 'setup' | 'waiting_room' | 'live';
+export type UserRole = 'organizer' | 'participant' | 'mentor' | 'judge' | 'projector';
+
+export interface User {
+  id: string;
+  name: string;
+  role: UserRole;
+  teamId?: string;
+  campId?: string;
+  email?: string;
+}
+
+export interface Organizer {
+  id: string;
+  name: string;
+  role: 'lead' | 'product' | 'technical' | 'organizer';
+  status: 'active' | 'offline';
+  email?: string;
+}
+
+export type SessionType = 'work' | 'break' | 'expert' | 'checkpoint' | 'demo' | 'custom';
+export type SessionStatus = 'queued' | 'active' | 'paused' | 'completed' | 'skipped';
 export type TimerMode = 'countdown' | 'countup' | 'hidden';
-export type CustomStageType = 'work' | 'break' | 'demo' | 'custom';
 
-export interface CustomTask {
+export type TaskSubmissionType = 'none' | 'text' | 'link' | 'upload' | 'checkpoint';
+export type TaskStatus = 'not_started' | 'in_progress' | 'completed';
+
+export interface TaskItem {
   id: string;
   title: string;
   description?: string;
+  whyItMatters?: string;
+  instructions?: string;
+  optionalResourceUrl?: string;
   required?: boolean;
   order: number;
   type?: 'task' | 'checkpoint' | 'upload' | 'text' | 'link';
+  submissionType?: TaskSubmissionType;
   requiresSubmission?: boolean;
 }
 
-export interface CustomStage {
+export interface Mission {
   id: string;
   title: string;
   description: string;
+  whyItMatters?: string;
+  expectedOutcome?: string;
+  tasks: TaskItem[];
+  successCriteria?: string[];
+}
+
+export interface DeliverableConfig {
+  requiresSubmission: boolean;
+  requiresReview: boolean;
+  type?: 'text' | 'link' | 'upload';
+  instructions?: string;
+}
+
+export interface Session {
+  id: string;
+  title: string;
+  subtitle?: string;
+  description: string;
+  day: 1 | 2 | 3;
   order: number;
-  day?: number;
-  type: CustomStageType;
+  type: SessionType;
   durationMinutes: number;
-  timerMode?: TimerMode;
-  tasks?: CustomTask[];
+  timerMode: TimerMode;
+  status?: SessionStatus;
+  mission?: Mission;
+  deliverableConfig?: DeliverableConfig;
+  speakerName?: string;
+  expertTakeaway?: string;
+  tasks?: TaskItem[]; // Backwards compatibility helper
   requiresSubmission?: boolean;
   requiresMentorReview?: boolean;
-  status?: 'draft' | 'active' | 'completed';
-  projectorMode?: string;
 }
 
-export interface GlobalState {
-  campStatus: CampStatus;
-  currentPhase: CampPhase;
-  activeDemoTeamId: string | null;
-  nextDemoTeamId: string | null;
-  announcement: string | null;
-  timerEndTime: number | null;
-  timerStartTime?: number | null;
-  timerMode?: TimerMode;
-  isTimerPaused?: boolean;
-  timerPausedAt?: number | null;
-  timerPausedRemainingMs?: number;
-  customStages?: CustomStage[];
-  activeCustomStageId?: string;
-  timerRoles?: UserRole[];
-  customStageTitle?: string;
-  customStageDesc?: string;
-  customStageDuration?: number;
-  revealScores: boolean;
-  preBreakPhase?: CampPhase;
+export type SubmissionStatus = 
+  | 'not_started' 
+  | 'in_progress' 
+  | 'ready_for_review' 
+  | 'submitted' 
+  | 'approved' 
+  | 'changes_requested';
+
+export interface TeamSubmission {
+  sessionId: string;
+  deliverableUrl?: string;
+  textAnswer?: string;
+  status: SubmissionStatus;
+  organizerFeedback?: string;
+  submittedAt: number;
+  reviewedAt?: number;
+  reviewerName?: string;
 }
 
-export type TeamStatus = 'green' | 'yellow' | 'red';
-export type CheckpointStatus = 'idle' | 'pending' | 'approved' | 'rejected';
-export type CampStage = 'ideation' | 'core_flow' | 'mvp_build';
+export type HelpCategory = 'product' | 'technical' | 'idea' | 'team' | 'other';
+export type HelpStatus = 'open' | 'claimed' | 'resolved';
+
+export interface HelpRequest {
+  id: string;
+  teamId: string;
+  participantName: string;
+  category: HelpCategory;
+  message?: string;
+  status: HelpStatus;
+  createdAt: number;
+  claimedBy?: string;
+  resolvedAt?: number;
+}
+
+export interface TeamMember {
+  id: string;
+  name: string;
+  joinedAt: number;
+}
 
 export interface Team {
   id: string;
   name: string;
   joinCode: string;
+  members: TeamMember[];
   projectIdea: string;
-  currentStage: CampStage;
+  currentStageId: string;
   progressPercentage: number;
-  healthStatus: TeamStatus;
-  checkpointStatus: CheckpointStatus;
-  demoDayTotalScore: number;
-  completedTaskIds: string[];
+  momentumScore: number;
+  taskStatuses: Record<string, TaskStatus>;
+  completedTaskIds: string[]; // Legacy & flat helper
+  submissions: Record<string, TeamSubmission>;
+  helpRequests: HelpRequest[];
+  healthStatus: 'green' | 'yellow' | 'red'; // Needs Attention signal
+  checkpointStatus: 'idle' | 'pending' | 'approved' | 'rejected';
   submittedDeliverableUrl?: string;
-  submissionStatus?: 'idle' | 'pending' | 'approved' | 'rejected';
+  currentStage?: string;
+  demoDayTotalScore?: number;
 }
+
+export interface GlobalState {
+  campCode: string;
+  campStatus: 'welcome' | 'live' | 'paused' | 'completed' | 'setup' | 'waiting_room';
+  isCampPaused: boolean;
+  activeSessionId: string;
+  sessions: Session[];
+  announcement: string | null;
+  timerMode: TimerMode;
+  timerStartTime: number | null;
+  timerEndTime: number | null;
+  isTimerPaused: boolean;
+  timerPausedAt?: number | null;
+  timerPausedRemainingMs?: number;
+  activeDemoTeamId?: string | null;
+  nextDemoTeamId?: string | null;
+  revealScores?: boolean;
+  
+  // Legacy / derived fields for backwards compatibility
+  currentPhase?: any;
+  customStages?: any[];
+  activeCustomStageId?: string;
+  customStageTitle?: string;
+  customStageDesc?: string;
+  customStageDuration?: number;
+  timerRoles?: UserRole[];
+  preBreakPhase?: any;
+}
+
+// Legacy helpers
+export type CustomStage = Session;
+export type CustomTask = TaskItem;
 
 export interface Task {
   taskId: string;
@@ -105,95 +194,6 @@ export interface DemoDayScore {
   notes?: string;
 }
 
-export type UserRole = 'organizer' | 'participant' | 'mentor' | 'judge' | 'projector';
-
-export interface User {
-  id: string;
-  name: string;
-  role: UserRole;
-  teamId?: string;
-}
-
-export interface DataProvider {
-  // Subscriptions
-  subscribeToGlobalState(callback: (state: GlobalState) => void): () => void;
-  subscribeToUsers(callback: (users: User[]) => void): () => void;
-  subscribeToTeams(callback: (teams: Team[]) => void): () => void;
-  subscribeToTeam(teamId: string, callback: (team: Team | null) => void): () => void;
-  subscribeToTeamTasks(teamId: string, callback: (tasks: Task[]) => void): () => void;
-  subscribeToDemoScores(teamId: string, callback: (scores: DemoDayScore[]) => void): () => void;
-  subscribeToInterventions(teamId: string, callback: (interventions: Intervention[]) => void): () => void;
-
-  // Mutations
-  updateGlobalState(updates: Partial<GlobalState>, actorId?: string): Promise<void>;
-  updateTeam(teamId: string, updates: Partial<Team>): Promise<void>;
-  submitTask(teamId: string, taskId: string): Promise<void>;
-  submitCheckpoint(teamId: string): Promise<void>;
-  approveCheckpoint(teamId: string, nextStage: CampStage, mentorId: string): Promise<void>;
-  requestIntervention(teamId: string, participantId: string): Promise<void>;
-  claimIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void>;
-  resolveIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void>;
-  submitJudgeScore(score: Omit<DemoDayScore, 'id' | 'totalScore'>): Promise<void>;
-  joinTeam(joinCode: string, participantId: string): Promise<string>;
-  createTeam(name: string): Promise<void>;
-  deleteTeam(teamId: string): Promise<void>;
-  
-  // Custom Stage Management
-  saveCustomStages(stages: CustomStage[]): Promise<void>;
-  activateCustomStage(stageId: string): Promise<void>;
-  
-  // Dev Only
-  resetState(): Promise<void>;
-}
-
-// ------------------------------------------------------------------
-// CAMP OPERATIONS ENGINE TYPES
-// ------------------------------------------------------------------
-
-export type PhaseType = 'normal' | 'break' | 'demo_day';
-
-export interface RunOfShowPhase {
-  id: string;
-  title: string;
-  description: string;
-  durationMinutes: number;
-  order: number;
-  missionId?: string;
-  type: PhaseType;
-  allowAdvance: boolean;
-  projectorMode: string;
-}
-
-export interface MissionTaskTemplate {
-  id: string;
-  description: string;
-}
-
-export interface MissionTemplate {
-  id: string;
-  title: string;
-  description: string;
-  tasks: MissionTaskTemplate[];
-}
-
-export interface TeamMissionChecklist {
-  missionId: string;
-  completedTaskIds: string[];
-}
-
-export type InterventionStatus = 'open' | 'claimed' | 'resolved';
-
-export interface Intervention {
-  id: string;
-  teamId: string;
-  participantId?: string;
-  mentorId?: string;
-  status: InterventionStatus;
-  createdAt: number;
-  claimedAt?: number;
-  resolvedAt?: number;
-}
-
 export type AuditLogEventType = 
   | 'PHASE_STARTED' 
   | 'STAGE_ACTIVATED'
@@ -209,17 +209,57 @@ export type AuditLogEventType =
   | 'SCORES_SUBMITTED' 
   | 'SCORES_REVEALED';
 
-export interface AuditLogEvent {
-  id: string;
-  type: AuditLogEventType;
-  timestamp: number;
-  actorId?: string;
-  actorRole?: UserRole;
-  targetId?: string;
-  metadata?: Record<string, any>;
-}
+export interface DataProvider {
+  // Subscriptions
+  subscribeToGlobalState(callback: (state: GlobalState) => void): () => void;
+  subscribeToUsers(callback: (users: User[]) => void): () => void;
+  subscribeToTeams(callback: (teams: Team[]) => void): () => void;
+  subscribeToTeam(teamId: string, callback: (team: Team | null) => void): () => void;
+  subscribeToTeamTasks(teamId: string, callback: (tasks: Task[]) => void): () => void;
+  subscribeToDemoScores(teamId: string, callback: (scores: DemoDayScore[]) => void): () => void;
+  subscribeToInterventions(teamId: string, callback: (interventions: any[]) => void): () => void;
+  subscribeToOrganizers?(callback: (organizers: Organizer[]) => void): () => void;
 
-export interface RoleAllowlistEntry {
-  email: string;
-  role: 'organizer' | 'mentor' | 'judge';
+  // Global & Session Operations
+  updateGlobalState(updates: Partial<GlobalState>, actorId?: string): Promise<void>;
+  saveSessions(sessions: Session[]): Promise<void>;
+  saveCustomStages(stages: any[]): Promise<void>;
+  activateSession(sessionId: string): Promise<void>;
+  activateCustomStage(stageId: string): Promise<void>;
+  pauseSession(): Promise<void>;
+  resumeSession(): Promise<void>;
+  pauseCamp(): Promise<void>;
+  resumeCamp(): Promise<void>;
+  adjustTimer(minutesDelta: number): Promise<void>;
+
+  // Team & Participant Operations
+  createTeam(name: string, customCode?: string): Promise<Team>;
+  joinTeam(joinCode: string, participantName: string, participantId?: string): Promise<any>;
+  updateTeam(teamId: string, updates: Partial<Team>): Promise<void>;
+  deleteTeam(teamId: string): Promise<void>;
+
+  // Task & Deliverable Operations
+  updateTaskStatus(teamId: string, taskId: string, status: TaskStatus): Promise<void>;
+  submitTask(teamId: string, taskId: string): Promise<void>;
+  submitDeliverable(teamId: string, sessionId: string, deliverableUrl: string, textAnswer?: string): Promise<void>;
+  reviewDeliverable(teamId: string, sessionId: string, status: 'approved' | 'changes_requested', feedback?: string, reviewerName?: string): Promise<void>;
+  submitCheckpoint(teamId: string): Promise<void>;
+  approveCheckpoint(teamId: string, nextStage: string, mentorId: string): Promise<void>;
+  submitJudgeScore(score: Omit<DemoDayScore, 'id' | 'totalScore'>): Promise<void>;
+
+  // Help Requests (Needs Attention)
+  requestHelp(teamId: string, participantName: string, category: HelpCategory, message?: string): Promise<void>;
+  requestIntervention(teamId: string, participantId: string): Promise<void>;
+  claimHelp(teamId: string, helpRequestId: string, organizerName: string): Promise<void>;
+  claimIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void>;
+  resolveHelp(teamId: string, helpRequestId: string, organizerName: string): Promise<void>;
+  resolveIntervention(teamId: string, interventionId: string, mentorId: string): Promise<void>;
+
+  // Organizers Management
+  addOrganizer?(name: string, role: Organizer['role'], email?: string): Promise<void>;
+  removeOrganizer?(organizerId: string): Promise<void>;
+
+  // Seed / Reset
+  seedDatabase(): Promise<void>;
+  resetState(): Promise<void>;
 }
