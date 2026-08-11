@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
 
 export default function LoginPage() {
-  const { currentUser } = useCampContext();
+  const { currentUser, setCurrentUser } = useCampContext();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -16,21 +16,42 @@ export default function LoginPage() {
   useEffect(() => {
     if (currentUser) {
       setIsLoading(false);
-      if (currentUser.role === 'organizer') router.push('/organizer');
-      else if (currentUser.role === 'mentor') router.push('/mentor');
-      else if (currentUser.role === 'judge') router.push('/judge');
-      else router.push('/participant');
+      if (currentUser.role === 'organizer' || currentUser.role === 'mentor' || currentUser.role === 'judge') {
+        router.push('/organizer');
+      } else {
+        router.push('/participant');
+      }
     }
   }, [currentUser, router]);
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleOrganizerLogin = async () => {
     try {
       setIsLoading(true);
       setLoginError('');
-      await signInWithPopup(auth, googleProvider);
+      const res = await signInWithPopup(auth, googleProvider);
+      if (res.user) {
+        const organizerUser = {
+          id: res.user.uid,
+          name: res.user.displayName || res.user.email?.split('@')[0] || 'منسق المعسكر',
+          role: 'organizer' as const,
+          email: res.user.email || undefined,
+          campId: 'Z2MVP'
+        };
+
+        setCurrentUser(organizerUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('camp_os_session', JSON.stringify({
+            participantId: res.user.uid,
+            participantName: organizerUser.name,
+            role: 'organizer',
+            campId: 'Z2MVP'
+          }));
+        }
+
+        router.push('/organizer');
+      }
     } catch (err: any) {
       console.error('Firebase auth popup error:', err);
-      // Fallback for mobile browsers or popup blockers
       if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
         try {
           await signInWithRedirect(auth, googleProvider);
@@ -39,37 +60,30 @@ export default function LoginPage() {
           console.error('Firebase auth redirect error:', redirectErr);
         }
       }
-      setLoginError('تعذر تسجيل الدخول. يرجى المحاولة مرة أخرى.');
+      setLoginError('تعذر تسجيل الدخول. يرجى المحاولة مرة أخرى أو الدخول المباشر إلى /organizer');
       setIsLoading(false);
     }
   };
 
   const handleLogout = async () => {
     await signOut(auth);
-    setIsLoading(false);
-  };
-
-  const translateRole = (role?: string) => {
-    switch (role) {
-      case 'organizer': return 'منظّم';
-      case 'mentor': return 'مُرشِد';
-      case 'judge': return 'محكّم';
-      case 'participant': return 'مشارك';
-      default: return role || 'مشارك';
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('camp_os_session');
     }
+    setIsLoading(false);
   };
 
   return (
     <div className={styles.page}>
       <div className={styles.card}>
-        <span className={styles.brand}>Camp OS</span>
-        <h1 className={styles.title}>تسجيل الدخول</h1>
-        <p className={styles.subtitle}>سجّل الدخول للوصول إلى لوحة المعلومات</p>
+        <span className={styles.brand}>FROM ZERO TO MVP · CAMP OS</span>
+        <h1 className={styles.title}>تسجيل دخول المنظمين</h1>
+        <p className={styles.subtitle}>سجّل الدخول بواسطة Google للوصول إلى غرفة تحكم المعسكر (CAMP CONTROL)</p>
         
         {!currentUser ? (
           <>
             <button 
-              onClick={handleGoogleLogin}
+              onClick={handleGoogleOrganizerLogin}
               className={styles.googleBtn}
               disabled={isLoading}
             >
@@ -79,17 +93,23 @@ export default function LoginPage() {
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
               </svg>
-              {isLoading ? 'جاري الدخول...' : 'تسجيل الدخول باستخدام Google'}
+              {isLoading ? 'جاري الدخول...' : 'تسجيل الدخول كمنظّم بواسطة Google'}
             </button>
             {loginError && <p className={styles.errorMsg}>{loginError}</p>}
+
+            <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', width: '100%' }}>
+              <a href="/organizer" style={{ color: 'var(--color-blue)', fontWeight: 800, textDecoration: 'none' }}>
+                أو الانتقال المباشر لغرفة التحكم (/organizer) ←
+              </a>
+            </div>
           </>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%' }}>
             <p style={{ color: 'var(--text-main)', fontSize: '1rem' }}>
-              مرحباً <strong>{currentUser.name}</strong> ({translateRole(currentUser.role)})
+              مرحباً <strong>{currentUser.name}</strong> (منظّم المعسكر)
             </p>
-            <button onClick={() => router.push(`/${currentUser.role}`)} className={styles.googleBtn}>
-              الانتقال إلى اللوحة ({translateRole(currentUser.role)})
+            <button onClick={() => router.push('/organizer')} className={styles.googleBtn}>
+              الانتقال إلى غرفة التحكم (CAMP CONTROL) ←
             </button>
             <button onClick={handleLogout} className={styles.logoutBtn}>
               تسجيل الخروج

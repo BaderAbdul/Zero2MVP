@@ -26,11 +26,20 @@ export default function AuditoriumProjector() {
 
   return (
     <div className={styles.projectorShell}>
-      {/* FULL SCREEN ANNOUNCEMENT OVERLAY */}
-      {globalState.announcement && (
+      {/* FULL SCREEN ANNOUNCEMENT & IMAGE OVERLAY */}
+      {(globalState.announcement || globalState.announcementImageUrl) && (
         <div className={styles.announcementOverlay}>
           <span className={styles.announcementTag}>إعلان هام من إدارة المعسكر</span>
-          <h1 className={styles.announcementText}>{globalState.announcement}</h1>
+          {globalState.announcement && (
+            <h1 className={styles.announcementText}>{globalState.announcement}</h1>
+          )}
+          {globalState.announcementImageUrl && (
+            <img 
+              src={globalState.announcementImageUrl} 
+              alt="Projector Broadcast" 
+              style={{ maxWidth: '80%', maxHeight: '55vh', objectFit: 'contain', border: '4px solid var(--border-main)', margin: '1rem 0' }}
+            />
+          )}
           <span style={{ fontSize: '1.25rem', opacity: 0.8, fontFamily: 'IBM Plex Mono' }}>BROADCAST SIGNAL // LIVE</span>
         </div>
       )}
@@ -68,8 +77,13 @@ export default function AuditoriumProjector() {
               {activeDemoTeam ? activeDemoTeam.name : 'يوم العروض والتقييم — DEMO DAY'}
             </h1>
             <p className={styles.sessionDesc}>
-              {activeDemoTeam ? `الفريق المعروض حالياً: ${activeDemoTeam.projectIdea || 'مشروع ذكاء اصطناعي'}` : 'عرض المنتجات الحية أمام لجنة التحكيم'}
+              {activeDemoTeam ? `مشروع: ${activeDemoTeam.projectIdea || 'مشروع ذكاء اصطناعي'}` : 'عرض المنتجات الحية أمام لجنة التحكيم'}
             </p>
+            {activeDemoTeam?.submittedDeliverableUrl && (
+              <div style={{ padding: '0.75rem 1.5rem', background: '#EFF6FF', border: '2px solid var(--color-blue)', fontSize: '1.25rem', fontWeight: 800, margin: '0.5rem 0' }}>
+                🌐 رابط التجربة المباشرة: {activeDemoTeam.submittedDeliverableUrl}
+              </div>
+            )}
             <div className={styles.timerBox}>
               <div className={styles.timerText}>{formattedTime}</div>
             </div>
@@ -118,7 +132,7 @@ export default function AuditoriumProjector() {
         </div>
 
         <div style={{ fontFamily: 'IBM Plex Mono' }}>
-          CAMP OS 5.0 · AUDITORIUM DISPLAY
+          CAMP OS 7.0 · AUDITORIUM DISPLAY
         </div>
       </footer>
     </div>

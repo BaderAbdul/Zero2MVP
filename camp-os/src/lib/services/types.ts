@@ -147,6 +147,7 @@ export interface GlobalState {
   activeSessionId: string;
   sessions: Session[];
   announcement: string | null;
+  announcementImageUrl?: string | null;
   timerMode: TimerMode;
   timerStartTime: number | null;
   timerEndTime: number | null;

@@ -24,17 +24,24 @@ export default function OrganizerHub() {
 
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [announcementInput, setAnnouncementInput] = useState('');
+  const [announcementImageInput, setAnnouncementImageInput] = useState('');
 
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   const [reviewFeedbackInput, setReviewFeedbackInput] = useState('');
 
+  // Team CRUD Modals
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [newTeamNameInput, setNewTeamNameInput] = useState('');
+  const [newTeamCodeInput, setNewTeamCodeInput] = useState('');
+
+  const [editingTeam, setEditingTeam] = useState<Team | null>(null);
+  const [editTeamNameInput, setEditTeamNameInput] = useState('');
+  const [editTeamIdeaInput, setEditTeamIdeaInput] = useState('');
+  const [editTeamCodeInput, setEditTeamCodeInput] = useState('');
 
   const [showAddOrganizerModal, setShowAddOrganizerModal] = useState(false);
-  const [newOrganizerNameInput, setNewOrganizerNameInput] = useState('');
 
-  // Confirmation Modal State (Destructive Action Guard)
+  // Confirmation Guard Modal
   const [confirmAction, setConfirmAction] = useState<{
     title: string;
     message: string;
@@ -80,16 +87,43 @@ export default function OrganizerHub() {
 
   const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
-    await provider.updateGlobalState({ announcement: announcementInput.trim() || null });
+    await provider.updateGlobalState({ 
+      announcement: announcementInput.trim() || null,
+      announcementImageUrl: announcementImageInput.trim() || null
+    });
     setShowAnnouncementModal(false);
   };
 
+  // Team CRUD Handlers
   const handleCreateTeamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTeamNameInput.trim()) return;
-    await provider.createTeam(newTeamNameInput.trim());
+    await provider.createTeam(newTeamNameInput.trim(), newTeamCodeInput.trim() || undefined);
     setNewTeamNameInput('');
+    setNewTeamCodeInput('');
     setShowCreateTeamModal(false);
+  };
+
+  const handleEditTeamSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTeam || !editTeamNameInput.trim()) return;
+    await provider.updateTeam(editingTeam.id, {
+      name: editTeamNameInput.trim(),
+      projectIdea: editTeamIdeaInput.trim(),
+      joinCode: editTeamCodeInput.trim() || editingTeam.joinCode
+    });
+    setEditingTeam(null);
+  };
+
+  const handleDeleteTeamWithGuard = (team: Team) => {
+    setConfirmAction({
+      title: 'حذف الفريق بالكامل',
+      message: `هل أنت تأكد من حذف فريق "${team.name}" نهائياً من المعسكر؟ لا يمكن التراجع عن هذا الإجراء.`,
+      action: async () => {
+        await provider.deleteTeam(team.id);
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleSaveSession = async (e: React.FormEvent) => {
@@ -238,7 +272,7 @@ export default function OrganizerHub() {
                 </button>
               )}
               <button className={styles.actionBtn} onClick={() => setShowAnnouncementModal(true)}>
-                📢 بث إعلان
+                📢 بث إعلان / صورة 🖼️
               </button>
             </div>
 
@@ -411,10 +445,10 @@ export default function OrganizerHub() {
             )}
           </section>
 
-          {/* TEAM DIRECTORY */}
+          {/* TEAM DIRECTORY WITH FULL CRUD */}
           <section className={styles.directorySection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>دليل الفرق ({teams.length})</h2>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>دليل الفرق وإدارتها ({teams.length})</h2>
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button className={styles.actionBtn} onClick={() => setShowAddOrganizerModal(true)}>
                   + إضافة منظم
@@ -430,7 +464,28 @@ export default function OrganizerHub() {
                 <div key={t.id} className={styles.teamCard}>
                   <div className={styles.teamCardHeader}>
                     <span style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t.name}</span>
-                    <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '0.85rem', fontWeight: 700 }}>{t.joinCode}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span style={{ fontFamily: 'IBM Plex Mono', fontSize: '0.85rem', fontWeight: 700 }}>{t.joinCode}</span>
+                      <button 
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem' }}
+                        title="تعديل بيانات الفريق"
+                        onClick={() => {
+                          setEditingTeam(t);
+                          setEditTeamNameInput(t.name);
+                          setEditTeamIdeaInput(t.projectIdea || '');
+                          setEditTeamCodeInput(t.joinCode);
+                        }}
+                      >
+                        ✏️
+                      </button>
+                      <button 
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--color-red)' }}
+                        title="حذف الفريق"
+                        onClick={() => handleDeleteTeamWithGuard(t)}
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   </div>
 
                   <div>
@@ -490,7 +545,6 @@ export default function OrganizerHub() {
                       الحالة الحالية: {sub.status}
                     </div>
 
-                    {/* PRESET FEEDBACK BUTTONS */}
                     <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>قوالب ملاحظات سريعة:</span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -525,6 +579,51 @@ export default function OrganizerHub() {
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT TEAM MODAL */}
+      {editingTeam && (
+        <div className={styles.modalOverlay} onClick={() => setEditingTeam(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>تعديل بيانات الفريق</h2>
+            <form onSubmit={handleEditTeamSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>اسم الفريق</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  value={editTeamNameInput}
+                  onChange={(e) => setEditTeamNameInput(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>فكرة المشروع</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  value={editTeamIdeaInput}
+                  onChange={(e) => setEditTeamIdeaInput(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>رمز الانضمام (Team Code)</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  value={editTeamCodeInput}
+                  onChange={(e) => setEditTeamCodeInput(e.target.value)}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" className={styles.actionBtn} onClick={() => setEditingTeam(null)} style={{ width: '35%' }}>إلغاء</button>
+                <button type="submit" className={`${styles.actionBtn} ${styles.primaryActionBtn}`} style={{ width: '65%' }}>حفظ التعديلات ←</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -586,6 +685,17 @@ export default function OrganizerHub() {
                 />
               </div>
 
+              <div>
+                <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>رمز الانضمام المخصص (اختياري)</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  placeholder="مثال: Z2MVP-99"
+                  value={newTeamCodeInput}
+                  onChange={(e) => setNewTeamCodeInput(e.target.value)}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
                 <button type="button" className={styles.actionBtn} onClick={() => setShowCreateTeamModal(false)} style={{ width: '35%' }}>
                   إلغاء
@@ -599,11 +709,11 @@ export default function OrganizerHub() {
         </div>
       )}
 
-      {/* BROADCAST ANNOUNCEMENT MODAL */}
+      {/* BROADCAST ANNOUNCEMENT & IMAGE MODAL */}
       {showAnnouncementModal && (
         <div className={styles.modalOverlay} onClick={() => setShowAnnouncementModal(false)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>بث إعلان عام للقاعة والمتدربين</h2>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>بث إعلان / صورة للبروجكتر والقاعة</h2>
             <form onSubmit={handleBroadcastAnnouncement} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>نص الإعلان</label>
@@ -617,12 +727,23 @@ export default function OrganizerHub() {
                 />
               </div>
 
+              <div>
+                <label style={{ fontSize: '0.9rem', fontWeight: 700, display: 'block', marginBottom: '0.5rem' }}>رابط الصورة المعروضة (Image URL)</label>
+                <input
+                  type="url"
+                  className={styles.inputField}
+                  placeholder="https://example.com/poster.jpg"
+                  value={announcementImageInput}
+                  onChange={(e) => setAnnouncementImageInput(e.target.value)}
+                />
+              </div>
+
               <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
-                <button type="button" className={styles.actionBtn} onClick={() => setShowAnnouncementModal(false)} style={{ width: '35%' }}>
-                  مسح / إلغاء
+                <button type="button" className={styles.actionBtn} onClick={() => { setAnnouncementInput(''); setAnnouncementImageInput(''); }} style={{ width: '35%' }}>
+                  مسح البث الحالي
                 </button>
                 <button type="submit" className={`${styles.actionBtn} ${styles.primaryActionBtn}`} style={{ width: '65%' }}>
-                  بث الإعلان الآن 📢
+                  بث الإعلان والصورة الآن 📢
                 </button>
               </div>
             </form>
