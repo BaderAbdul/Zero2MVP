@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { useCampContext, useTeams, useTeamInterventions } from '@/lib/services/CampContext';
+import { useCampEngine } from '@/lib/services/campEngine';
 import styles from './mentor.module.css';
 
-const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
+const TeamCard = ({ team, isUrgent, activeStageName }: { team: any, isUrgent: boolean, activeStageName: string }) => {
   const { provider, currentUser } = useCampContext();
   const interventions = useTeamInterventions(team.id) || [];
   
@@ -31,11 +32,13 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
   return (
     <div className={`${styles.teamCard} ${styles[`health-${team.healthStatus}`]} ${isUrgent ? styles.urgentCard : ''}`}>
       <div className={styles.cardHeader}>
-        <div className={styles.headerLeft}>
+        <div className={styles.headerLeftCard}>
           <h2>{team.name}</h2>
-          <span className={styles.stageBadge}>{team.currentStage}</span>
+          <span className={styles.stageBadge}>{activeStageName || team.currentStage}</span>
         </div>
-        <div className={styles.healthIndicator} title={`حالة الفريق: ${team.healthStatus}`} />
+        <div className={styles.healthBadge}>
+          {team.healthStatus === 'green' ? 'OK' : team.healthStatus === 'yellow' ? 'WARN' : 'CRIT'}
+        </div>
       </div>
       
       <p className={styles.idea}>"{team.projectIdea}"</p>
@@ -53,7 +56,7 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
       <div className={styles.checkpointSection}>
         {team.checkpointStatus !== 'idle' && (
           <span className={`${styles.statusLabel} ${styles[`status-${team.checkpointStatus}`]}`}>
-            نقطة التحقق: {team.checkpointStatus.toUpperCase()}
+            [CHECKPOINT] {team.checkpointStatus.toUpperCase()}
           </span>
         )}
         
@@ -62,16 +65,16 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
             onClick={handleApproveCheckpoint}
             className={styles.approveButton}
           >
-            قبول نقطة التحقق
+            APPROVE CHECKPOINT
           </button>
         )}
         
         {openInterventions.length > 0 && (
           <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>🚨 طلب مساعدة</p>
+            <p className={styles.interventionsLabel}>[!] HELP REQUESTED</p>
             {openInterventions.map(i => (
               <button key={i.id} onClick={() => handleClaim(i.id)} className={styles.claimBtn}>
-                استلام الطلب
+                CLAIM INTERVENTION
               </button>
             ))}
           </div>
@@ -79,25 +82,29 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
 
         {claimedInterventions.length > 0 && (
           <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>🛠️ أنت تساعد هذا الفريق</p>
+            <p className={styles.interventionsLabel} style={{color: 'var(--color-success)', borderColor: 'var(--color-success)'}}>
+              [+] YOU ARE ASSISTING
+            </p>
             {claimedInterventions.map(i => (
               <button key={i.id} onClick={() => handleResolve(i.id)} className={styles.resolveBtn}>
-                تم الحل
+                MARK RESOLVED
               </button>
             ))}
           </div>
         )}
 
         {othersClaimedInterventions.length > 0 && (
-          <div className={styles.interventionsBox}>
-            <p className={styles.interventionsLabel}>👀 مُرشِد آخر يقوم بالمساعدة</p>
+          <div className={styles.interventionsBox} style={{borderColor: 'var(--border-glass-strong)'}}>
+            <p className={styles.interventionsLabel} style={{color: 'var(--text-muted)'}}>
+              [-] OTHER MENTOR ASSISTING
+            </p>
           </div>
         )}
         
         <div className={styles.healthControls}>
-          <button onClick={() => handleUpdateHealth('green')} className={styles.healthBtnGreen}>✓</button>
-          <button onClick={() => handleUpdateHealth('yellow')} className={styles.healthBtnYellow}>⚠️</button>
-          <button onClick={() => handleUpdateHealth('red')} className={styles.healthBtnRed}>🚨</button>
+          <button onClick={() => handleUpdateHealth('green')} className={styles.healthBtnGreen}>SET OK</button>
+          <button onClick={() => handleUpdateHealth('yellow')} className={styles.healthBtnYellow}>SET WARN</button>
+          <button onClick={() => handleUpdateHealth('red')} className={styles.healthBtnRed}>SET CRIT</button>
         </div>
       </div>
     </div>
@@ -106,35 +113,38 @@ const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
 
 export default function MentorDashboard() {
   const { currentUser } = useCampContext();
+  const { activeCustomStage, globalState } = useCampEngine();
   const teams = useTeams();
 
   if (!currentUser || currentUser.role !== 'mentor') {
-    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ المُرشِد عبر <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS MENTOR.</div>;
   }
-
-  // Mentor doesn't use isLoaded in current setup but we can add a check if teams is empty as proxy or just rely on teams.
-
 
   const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
   const monitoringTeams = teams.filter(t => t.checkpointStatus !== 'pending' && t.healthStatus === 'green');
 
+  const activeStageName = activeCustomStage?.title || 'STANDBY';
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1>مركز تدخل الفرق</h1>
+        <div className={styles.headerLeft}>
+          <span className={styles.systemLabel}>OP-SYS // MENTOR // {currentUser.id}</span>
+          <h1>Intervention Center</h1>
+        </div>
       </header>
 
       <div className={styles.triageLayout}>
         {/* LANE 1: ACTION REQUIRED */}
         <section className={styles.lane}>
           <h2 className={styles.laneTitleUrgent}>
-            🚨 يتطلب التدخل <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
+            [!] ACTION REQUIRED <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
           </h2>
           <div className={styles.urgentGrid}>
             {actionRequiredTeams.length > 0 ? (
-              actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} />)
+              actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} activeStageName={activeStageName} />)
             ) : (
-              <div className={styles.emptyLane}>✅ كل شيء على ما يرام! لا توجد فرق تحتاج للمساعدة.</div>
+              <div className={styles.emptyLane}>[ NO ACTION REQUIRED ]</div>
             )}
           </div>
         </section>
@@ -142,10 +152,10 @@ export default function MentorDashboard() {
         {/* LANE 2: MONITORING */}
         <section className={styles.lane}>
           <h2 className={styles.laneTitle}>
-            ✅ المراقبة <span className={styles.countBadge}>{monitoringTeams.length}</span>
+            [-] TELEMETRY (OK) <span className={styles.countBadge}>{monitoringTeams.length}</span>
           </h2>
           <div className={styles.monitoringGrid}>
-            {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} />)}
+            {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} activeStageName={activeStageName} />)}
           </div>
         </section>
       </div>

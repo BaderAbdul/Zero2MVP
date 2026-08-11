@@ -27,6 +27,17 @@ export class FirebaseProvider implements DataProvider {
     const unsub = onSnapshot(doc(db, 'camp_os', 'global_state'), (docSnap) => {
       if (docSnap.exists()) {
         callback(docSnap.data() as GlobalState);
+      } else {
+        // Fallback for empty database to prevent hanging UI
+        callback({
+          campStatus: 'setup',
+          currentPhase: 'setup',
+          activeDemoTeamId: null,
+          nextDemoTeamId: null,
+          announcement: null,
+          timerEndTime: null,
+          revealScores: false
+        } as GlobalState);
       }
     });
     return unsub;
@@ -112,7 +123,7 @@ export class FirebaseProvider implements DataProvider {
       const currentPhase = currentState.currentPhase;
       const newPhase = updates.currentPhase;
       
-      if (currentPhase !== newPhase && currentPhase !== 'break') {
+      if (currentPhase !== newPhase && currentPhase !== 'break' && currentPhase !== 'custom' && newPhase !== 'custom') {
         const allowed = ALLOWED_TRANSITIONS[currentPhase] || [];
         if (!allowed.includes(newPhase)) {
           throw new Error(`Invalid phase transition: ${currentPhase} -> ${newPhase}`);

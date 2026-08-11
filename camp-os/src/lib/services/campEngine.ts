@@ -63,15 +63,33 @@ export function useCampEngine() {
   // 1. Phase state
   const isBreak = globalState.currentPhase === 'break';
   const effectivePhaseId = isBreak ? (globalState.preBreakPhase || 'setup') : globalState.currentPhase;
-  const currentRoSPhase = RUN_OF_SHOW.find(p => p.id === effectivePhaseId) || RUN_OF_SHOW[0];
+  const isCustomMode = effectivePhaseId === 'custom' || globalState.currentPhase === 'custom';
   
-  // 2. Demo Queue logic
+  let currentRoSPhase: RunOfShowPhase;
+  let activeCustomStage = null;
+
+  if (isCustomMode && globalState.customStages && globalState.currentStageId) {
+    activeCustomStage = globalState.customStages.find(s => s.id === globalState.currentStageId) || null;
+    currentRoSPhase = {
+      id: activeCustomStage?.id || 'custom',
+      title: activeCustomStage?.title || 'Custom Stage',
+      description: activeCustomStage?.description || '',
+      durationMinutes: activeCustomStage?.durationMs ? Math.floor(activeCustomStage.durationMs / 60000) : 0,
+      order: activeCustomStage?.order || 0,
+      type: 'normal',
+      allowAdvance: true,
+      projectorMode: activeCustomStage?.timerMode === 'hidden' ? 'standby' : 'timer'
+    };
+  } else {
+    currentRoSPhase = RUN_OF_SHOW.find(p => p.id === effectivePhaseId) || RUN_OF_SHOW[0];
+  }
+  
+  // 2. Demo Queue logic (legacy support)
   const isDemoDay = currentRoSPhase.type === 'demo_day';
   const activeDemoTeam = isDemoDay ? teams.find(t => t.id === globalState.activeDemoTeamId) : null;
   
   let nextDemoTeam = null;
   if (isDemoDay && activeDemoTeam) {
-    // Determine next team based on order (mock logic for now, assumes teams array order is queue)
     const activeIdx = teams.findIndex(t => t.id === activeDemoTeam.id);
     if (activeIdx >= 0 && activeIdx < teams.length - 1) {
       nextDemoTeam = teams[activeIdx + 1];
@@ -80,11 +98,28 @@ export function useCampEngine() {
     nextDemoTeam = teams[0];
   }
 
-  // 3. Timer status
+  // 3. UX 4.0 Advanced Timer status
   const now = Date.now();
-  const timeRemainingMs = globalState.timerEndTime ? Math.max(0, globalState.timerEndTime - now) : 0;
+  const timerMode = globalState.timerMode || 'countdown';
+  const isPaused = !!globalState.isTimerPaused;
+  const pauseTime = globalState.timerPausedAt || now;
+
+  let timeRemainingMs = 0;
+  if (globalState.timerEndTime) {
+    if (isPaused) {
+      timeRemainingMs = Math.max(0, globalState.timerEndTime - pauseTime);
+    } else {
+      timeRemainingMs = Math.max(0, globalState.timerEndTime - now);
+    }
+  }
   const timeRemainingSeconds = Math.floor(timeRemainingMs / 1000);
   
+  let timeElapsedMs = globalState.timerAccumulatedMs || 0;
+  if (globalState.timerStartTime && !isPaused) {
+    timeElapsedMs += Math.max(0, now - globalState.timerStartTime);
+  }
+  const timeElapsedSeconds = Math.floor(timeElapsedMs / 1000);
+
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -92,8 +127,15 @@ export function useCampEngine() {
   };
 
   // 4. Mission state (for participant)
-  let currentMission: MissionTemplate | null = null;
-  if (currentRoSPhase.missionId) {
+  let currentMission: any = null;
+  if (isCustomMode && activeCustomStage) {
+    currentMission = {
+      id: activeCustomStage.id,
+      title: activeCustomStage.title,
+      description: activeCustomStage.description,
+      tasks: activeCustomStage.tasks || []
+    };
+  } else if (currentRoSPhase.missionId) {
     currentMission = MISSIONS[currentRoSPhase.missionId] || null;
   }
 
@@ -101,14 +143,19 @@ export function useCampEngine() {
     isLoaded: true,
     globalState,
     currentRoSPhase,
+    activeCustomStage,
+    isCustomMode,
     isBreak,
     isDemoDay,
     activeDemoTeam,
     nextDemoTeam,
     currentMission,
+    timerMode,
+    isTimerPaused: isPaused,
     timeRemainingSeconds,
-    formattedTime: formatTime(timeRemainingSeconds),
-    isTimerRunning: timeRemainingSeconds > 0 && !isBreak,
+    timeElapsedSeconds,
+    formattedTime: formatTime(timerMode === 'countup' ? timeElapsedSeconds : timeRemainingSeconds),
+    isTimerRunning: (timerMode === 'countup' ? (!!globalState.timerStartTime && !isPaused) : (timeRemainingSeconds > 0 && !isPaused)) && !isBreak,
     userTeam: team
   };
 }

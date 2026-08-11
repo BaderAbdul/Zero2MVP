@@ -2,19 +2,31 @@
 
 import React, { useEffect, useState } from 'react';
 import { useCampEngine } from '@/lib/services/campEngine';
+import { useCampContext } from '@/lib/services/CampContext';
 import styles from './GlobalTimer.module.css';
 
 export default function GlobalTimer() {
-  const { isLoaded, timeRemainingSeconds, isBreak, isTimerRunning } = useCampEngine();
-  const [displaySeconds, setDisplaySeconds] = useState(timeRemainingSeconds || 0);
+  const { isLoaded, globalState, timeRemainingSeconds, timeElapsedSeconds, isBreak, isTimerRunning, timerMode } = useCampEngine();
+  const { currentUser } = useCampContext();
+
+  const isCountdown = timerMode === 'countdown';
+  const isCountUp = timerMode === 'countup';
+  const isHidden = timerMode === 'hidden';
+
+  const [displaySeconds, setDisplaySeconds] = useState(0);
 
   useEffect(() => {
-    setDisplaySeconds(timeRemainingSeconds || 0);
+    if (isCountUp) {
+      setDisplaySeconds(timeElapsedSeconds || 0);
+    } else {
+      setDisplaySeconds(timeRemainingSeconds || 0);
+    }
     
     if (!isTimerRunning) return;
     
     const interval = setInterval(() => {
       setDisplaySeconds((prev) => {
+        if (isCountUp) return prev + 1;
         if (prev <= 0) {
           clearInterval(interval);
           return 0;
@@ -24,9 +36,9 @@ export default function GlobalTimer() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeRemainingSeconds, isTimerRunning]);
+  }, [timeRemainingSeconds, timeElapsedSeconds, isTimerRunning, isCountUp]);
 
-  if (!isLoaded || (!isTimerRunning && !isBreak)) return null;
+  if (!isLoaded || isHidden || (!isTimerRunning && !isBreak && displaySeconds === 0 && !isCountUp)) return null;
 
   const currentSeconds = displaySeconds || 0;
   const m = Math.floor(currentSeconds / 60);
@@ -42,9 +54,12 @@ export default function GlobalTimer() {
     );
   }
 
+  const isCritical = isCountdown && currentSeconds < 60;
+  const label = isCountUp ? 'الوقت المنقضي' : 'الوقت المتبقي';
+
   return (
-    <div className={`${styles.timerContainer} ${currentSeconds < 60 ? styles.warning : ''}`}>
-      <span className={styles.timerLabel}>الوقت المتبقي</span>
+    <div className={`${styles.timerContainer} ${isCritical ? styles.warning : ''} ${isCountUp ? styles.countUpMode : ''}`}>
+      <span className={styles.timerLabel}>{label}</span>
       <span className={styles.timerValue}>{formatted}</span>
     </div>
   );

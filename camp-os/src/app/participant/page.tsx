@@ -8,17 +8,17 @@ import styles from './participant.module.css';
 
 export default function ParticipantDashboard() {
   const { provider, currentUser } = useCampContext();
-  const { isLoaded, globalState, currentRoSPhase, isBreak, currentMission, userTeam: team, activeDemoTeam } = useCampEngine();
+  const { isLoaded, globalState, currentRoSPhase, isBreak, currentMission, activeCustomStage, userTeam: team, activeDemoTeam } = useCampEngine();
 
   const [joinCodeInput, setJoinCodeInput] = React.useState('');
   const [joinError, setJoinError] = React.useState('');
   const [isJoining, setIsJoining] = React.useState(false);
 
   if (!currentUser || currentUser.role !== 'participant') {
-    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ مشارك عبر <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>UNAUTHORIZED. LOGIN AS PARTICIPANT.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.loading}>جاري تجهيز مهمتك...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.loading}>INITIALIZING TERMINAL...</div>;
 
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +27,6 @@ export default function ParticipantDashboard() {
     setJoinError('');
     try {
       await provider.joinTeam(joinCodeInput.trim().toUpperCase(), currentUser.id);
-      // Success, context will automatically update `teamId` and re-render.
     } catch (err: any) {
       setJoinError(err.message || "فشل الانضمام إلى الفريق.");
       setIsJoining(false);
@@ -38,19 +37,19 @@ export default function ParticipantDashboard() {
     return (
       <div className={styles.waitingRoom}>
         <div className={styles.waitingCard}>
-          <h1>الانضمام إلى فريقك</h1>
-          <p>الرجاء إدخال رمز الانضمام المكون من 6 أحرف المقدم من المنظّم.</p>
+          <h1>TEAM ACCESS</h1>
+          <p className={styles.missionDesc} style={{margin: '1rem 0'}}>الرجاء إدخال رمز الانضمام المقدم من المنظّم.</p>
           <form onSubmit={handleJoinTeam} className={styles.joinForm}>
             <input 
               type="text" 
-              placeholder="مثال: MVP-7K4Q أو 7K4Q9X" 
+              placeholder="CODE" 
               value={joinCodeInput} 
               onChange={e => setJoinCodeInput(e.target.value)}
               className={styles.joinInput}
               disabled={isJoining}
             />
             <button type="submit" className={styles.joinBtn} disabled={isJoining || !joinCodeInput.trim()}>
-              {isJoining ? 'جاري الانضمام...' : 'انضمام للفريق'}
+              {isJoining ? 'VERIFYING...' : 'ENTER SQUAD'}
             </button>
           </form>
           {joinError && <p className={styles.errorText}>{joinError}</p>}
@@ -74,15 +73,18 @@ export default function ParticipantDashboard() {
   };
 
   const renderMissionChecklist = () => {
-    if (!currentMission) return null;
+    let tasksToRender = activeCustomStage ? activeCustomStage.tasks : currentMission?.tasks;
+    
+    if (!tasksToRender || tasksToRender.length === 0) return null;
 
-    const completedCount = team.completedTaskIds?.filter(id => currentMission.tasks.find(t => t.id === id)).length || 0;
-    const totalCount = currentMission.tasks.length;
+    const completedCount = team.completedTaskIds?.filter(id => tasksToRender!.find((t: any) => t.id === id)).length || 0;
+    const totalCount = tasksToRender.length;
     const allCompleted = totalCount > 0 && completedCount === totalCount;
 
     return (
       <div className={styles.missionChecklist}>
-        {currentMission.tasks.map(task => {
+        <div className={styles.tasksHeader}>مهامك (TASKS)</div>
+        {tasksToRender.map((task: any) => {
           const isCompleted = team.completedTaskIds?.includes(task.id);
           return (
             <label key={task.id} className={`${styles.taskItem} ${isCompleted ? styles.taskCompleted : ''}`}>
@@ -92,13 +94,13 @@ export default function ParticipantDashboard() {
                 onChange={() => handleTaskSubmit(task.id)}
                 disabled={isCompleted}
               />
-              <span>{task.description}</span>
+              <span>{task.title || (task as any).description}</span>
             </label>
           );
         })}
         {allCompleted && (
           <div className={styles.statusBannerApproved}>
-            ✅ تمت المهمة بنجاح!
+            [COMPLETED] جميع مهام هذه المرحلة مكتملة.
           </div>
         )}
       </div>
@@ -109,8 +111,9 @@ export default function ParticipantDashboard() {
     if (isBreak) {
       return (
         <div className={styles.missionCenter}>
-          <h2 className={styles.missionTitle}>وقت الاستراحة ☕</h2>
-          <p className={styles.missionDesc}>خذ قسطًا من الراحة. المعسكر متوقف مؤقتًا.</p>
+          <p className={styles.subLabel}>SYSTEM PAUSE</p>
+          <h2 className={styles.missionTitle}>استراحة</h2>
+          <p className={styles.missionDesc}>الأنظمة متوقفة مؤقتاً.</p>
         </div>
       );
     }
@@ -119,15 +122,17 @@ export default function ParticipantDashboard() {
       if (activeDemoTeam?.id === team.id) {
         return (
           <div className={styles.missionActiveAlert}>
-            <h2 className={styles.missionTitlePulse}>إنه دورك! 🎤</h2>
-            <p className={styles.missionDesc}>توجه إلى المسرح الآن.</p>
+            <p className={styles.subLabel}>LIVE STAGE</p>
+            <h2 className={styles.missionTitlePulse}>إنه دورك!</h2>
+            <p className={styles.missionDesc}>فريقك الآن على المسرح. استعد للعرض.</p>
           </div>
         );
       } else {
         return (
           <div className={styles.missionCenter}>
+            <p className={styles.subLabel}>OBSERVATION STAGE</p>
             <h2 className={styles.missionTitle}>يوم العروض</h2>
-            <p className={styles.missionDesc}>تابع شاشة العرض وشجّع زملائك.</p>
+            <p className={styles.missionDesc}>تابع شاشة العرض.</p>
           </div>
         );
       }
@@ -136,66 +141,63 @@ export default function ParticipantDashboard() {
     if (currentRoSPhase.id === 'checkpoint') {
       return (
         <div className={styles.missionCenter}>
-          <h2 className={styles.missionTitle}>نقطة التحقق 🚨</h2>
+          <p className={styles.subLabel}>REQUIRED ACTION</p>
+          <h2 className={styles.missionTitle}>نقطة التحقق</h2>
           {team.checkpointStatus === 'idle' ? (
             <div className={styles.missionActive}>
-              <p className={styles.missionDesc}>يجب عليك إرسال عملك للمراجعة الآن.</p>
+              <p className={styles.missionDesc}>المطلوب إرسال عملك للمراجعة الآن.</p>
               <button onClick={handleRequestCheckpoint} className={styles.primaryBtnWarning}>
-                طلب مراجعة الآن
+                SUBMIT FOR REVIEW
               </button>
             </div>
           ) : team.checkpointStatus === 'pending' ? (
             <div className={styles.statusBannerPending}>
-              ⏳ المُرشِد يقوم بمراجعة نقطة التحقق...
+              [PENDING] قيد المراجعة من قبل المُرشِد...
             </div>
           ) : (
             <div className={styles.statusBannerApproved}>
-              ✅ تم اجتياز نقطة التحقق! عمل رائع.
+              [APPROVED] تم اجتياز نقطة التحقق.
             </div>
           )}
         </div>
       );
     }
 
-    if (currentMission) {
-      return (
-        <div className={styles.missionActive}>
-          <p className={styles.subLabel}>المهمة الحالية</p>
-          <h2 className={styles.missionTitleActive}>{currentMission.title}</h2>
-          <p className={styles.missionDesc}>{currentMission.description}</p>
-          
-          {renderMissionChecklist()}
-          
-          <div className={styles.actionGroup}>
-            <button 
-              onClick={handleRequestHelp} 
-              disabled={team.healthStatus === 'red'}
-              className={styles.secondaryBtnWarning}
-            >
-              {team.healthStatus === 'red' ? 'تم طلب المساعدة 🚨' : 'طلب مساعدة المُرشِد 🆘'}
-            </button>
-            
-            {team.checkpointStatus === 'idle' && (
-              <button onClick={handleRequestCheckpoint} className={styles.secondaryBtn}>
-                تسليم للمراجعة المبكرة
-              </button>
-            )}
-          </div>
-          
-          {team.checkpointStatus === 'pending' && (
-            <div className={styles.statusBannerPending}>
-              ⏳ تم طلب المراجعة. في انتظار المُرشِد...
-            </div>
-          )}
-        </div>
-      );
-    }
+    // Dynamic Mission Stage (from Organizer Command Center or predefined ROS)
+    const activeStageTitle = activeCustomStage ? activeCustomStage.title : (currentMission ? currentMission.title : currentRoSPhase.title);
+    const activeStageDesc = activeCustomStage ? activeCustomStage.description : (currentMission ? currentMission.description : currentRoSPhase.description);
+    
+    const showSubmitCheckpoint = activeCustomStage?.allowSubmission ?? true;
 
-    // Default standby
     return (
-      <div className={styles.missionCenter}>
-        <h2 className={styles.missionTitle}>{currentRoSPhase.title}</h2>
-        <p className={styles.missionDesc}>{currentRoSPhase.description}</p>
+      <div className={styles.missionActive}>
+        <p className={styles.subLabel}>CURRENT ASSIGNMENT</p>
+        <h2 className={styles.missionTitleActive}>{activeStageTitle}</h2>
+        <p className={styles.missionDesc}>{activeStageDesc}</p>
+        
+        {renderMissionChecklist()}
+        
+        <div className={styles.actionGroup}>
+          <button 
+            onClick={handleRequestHelp} 
+            disabled={team.healthStatus === 'red'}
+            className={styles.secondaryBtnWarning}
+          >
+            {team.healthStatus === 'red' ? '🚨 REQUEST SENT' : '[ SOS - REQUEST HELP ]'}
+          </button>
+          
+          {(team.checkpointStatus === 'idle' && showSubmitCheckpoint) && (
+            <button onClick={handleRequestCheckpoint} className={styles.secondaryBtn}>
+              [ إرسال المهمة للمراجعة ]
+            </button>
+          )}
+        </div>
+        
+        {team.checkpointStatus === 'pending' && (
+          <div className={styles.statusBannerPending}>
+            [PENDING] تم طلب المراجعة...
+          </div>
+        )}
       </div>
     );
   };
@@ -204,12 +206,13 @@ export default function ParticipantDashboard() {
     <div className={styles.container}>
       {globalState.announcement && (
         <div className={styles.announcementBanner}>
-          <strong>إعلان:</strong> {globalState.announcement}
+          {globalState.announcement}
         </div>
       )}
 
       <header className={styles.header}>
         <div className={styles.headerLeft}>
+          <span className={styles.systemLabel}>SQUAD // {team.id}</span>
           <div className={styles.teamBadge}>{team.name}</div>
           <div className={styles.progressContainer}>
             <div className={styles.progressBar}>

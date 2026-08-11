@@ -28,15 +28,15 @@ export default function JudgeExperience() {
   }, [activeTeam?.id]);
 
   if (!currentUser || currentUser.role !== 'judge') {
-    return <div className={styles.error}>غير مصرح. الرجاء تسجيل الدخول كـ محكّم عبر <a href="/login">/login</a>.</div>;
+    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS JUDGE VIA <a href="/login">/login</a>.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.container}>جاري تجهيز التقييم...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.container}>INITIALIZING SCORING MATRIX...</div>;
 
   if (currentRoSPhase.type !== 'demo_day') {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
-        <h1>يوم العروض لم يبدأ بعد</h1>
+        <h1>DEMO DAY OFFLINE</h1>
         <p>الرجاء الانتظار حتى يقوم المنظّم ببدء الفعالية.</p>
       </div>
     </div>;
@@ -45,7 +45,7 @@ export default function JudgeExperience() {
   if (!activeTeam) {
     return <div className={styles.container}>
       <div className={styles.waitingState}>
-        <h1>بانتظار الفريق التالي</h1>
+        <h1>AWAITING NEXT TEAM</h1>
         <p>انظر إلى شاشة العرض لمعرفة الترتيب الحالي.</p>
       </div>
     </div>;
@@ -68,8 +68,8 @@ export default function JudgeExperience() {
     return (
       <div className={styles.container}>
         <div className={styles.successBox}>
-          <h1>تم إرسال التقييم</h1>
-          <p>لا حاجة لأي إجراء آخر.</p>
+          <h1>SCORE LOGGED</h1>
+          <p>NO FURTHER ACTION REQUIRED FOR THIS TEAM.</p>
         </div>
       </div>
     );
@@ -80,7 +80,7 @@ export default function JudgeExperience() {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <p className={styles.label}>ورقة التقييم</p>
+        <p className={styles.label}>SCORING TERMINAL</p>
         <h1 className={styles.teamName}>{activeTeam.name}</h1>
         <p className={styles.idea}>"{activeTeam.projectIdea}"</p>
       </header>
@@ -116,7 +116,7 @@ export default function JudgeExperience() {
           disabled={!allScored}
           className={styles.submitButton}
         >
-          {allScored ? 'إرسال التقييم النهائي' : 'أكمل جميع المعايير أولاً'}
+          {allScored ? 'TRANSMIT FINAL SCORE' : 'COMPLETE ALL CRITERIA'}
         </button>
       </div>
     </div>

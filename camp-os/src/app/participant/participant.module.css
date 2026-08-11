@@ -1,5 +1,5 @@
 .container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
   color: var(--text-main);
@@ -8,292 +8,30 @@
   flex-direction: column;
 }
 
-.announcementBanner {
-  background: var(--color-accent);
-  color: #fff;
-  padding: 1rem;
-  text-align: center;
-  border-radius: var(--radius-md);
-  margin-bottom: 2rem;
-  font-weight: 600;
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from { transform: translateY(-20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  background: var(--bg-elevated);
-  padding: 1.5rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-}
-
-.headerLeft {
-  display: flex;
-  align-items: center;
-  gap: 1.5rem;
-  flex: 1;
-}
-
-.teamBadge {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--text-main);
-}
-
-.progressContainer {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex: 1;
-  max-width: 300px;
-}
-
-.progressBar {
-  flex: 1;
-  height: 8px;
-  background: var(--bg-main);
-  border-radius: 4px;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-}
-
-.progressFill {
-  height: 100%;
-  background: var(--color-accent);
-  transition: width 0.5s ease-out;
-}
-
-.progressText {
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.mainCard {
-  flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  align-items: stretch;
-  padding: 4rem 3rem;
-}
-
-.missionCenter {
-  text-align: center;
-  margin-top: 4rem;
-}
-
-.missionTitle {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin: 0 0 1rem 0;
-  color: var(--text-main);
-}
-
-.missionDesc {
-  font-size: 1.125rem;
-  color: var(--text-muted);
-  line-height: 1.6;
-  margin: 0;
-}
-
-.missionActive {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  width: 100%;
-}
-
-.subLabel {
-  color: var(--text-secondary);
-  font-weight: 600;
-  text-transform: uppercase;
-  margin: 0 0 1rem 0;
-}
-
-.missionTitleActive {
-  font-size: 3rem;
-  font-weight: 800;
-  margin: 0 0 1.5rem 0;
-  color: var(--text-main);
-  line-height: 1.2;
-}
-
-.missionChecklist {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  margin: 2.5rem 0;
-  width: 100%;
-}
-
-.taskItem {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  padding: 1.25rem 1.5rem;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 1.125rem;
-  font-weight: 500;
-}
-
-.taskItem:hover {
-  background: var(--bg-card-hover);
-}
-
-.taskCompleted {
-  opacity: 0.6;
-  text-decoration: line-through;
-  background: rgba(16, 185, 129, 0.05);
-  border-color: rgba(16, 185, 129, 0.2);
-  transform: scale(0.99); /* micro-interaction */
-}
-
-.taskItem input[type="checkbox"] {
-  width: 1.5rem;
-  height: 1.5rem;
-  cursor: pointer;
-  accent-color: var(--color-success);
-}
-
-.actionGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-top: 2rem;
-  width: 100%;
-}
-
-.secondaryBtnWarning {
-  width: 100%;
-  padding: 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 1.125rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--color-warning);
-  border: 1px solid var(--color-warning);
-}
-
-.secondaryBtnWarning:hover:not(:disabled) {
-  background: rgba(245, 158, 11, 0.2);
-}
-
-.secondaryBtnWarning:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-  background: rgba(239, 68, 68, 0.1);
-}
-
-.secondaryBtn {
-  width: 100%;
-  padding: 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 1.125rem;
-  font-weight: 600;
-  cursor: pointer;
-  background: transparent;
-  color: var(--text-main);
-  border: 1px solid var(--border-strong);
-  transition: background 0.2s;
-}
-
-.secondaryBtn:hover {
-  background: var(--bg-elevated);
-}
-
-.primaryBtnWarning {
-  width: 100%;
-  padding: 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 1.125rem;
-  font-weight: 700;
-  cursor: pointer;
-  background: var(--color-warning);
-  color: #000;
-  border: none;
-  margin-top: 2rem;
-}
-
-.statusBannerPending {
-  margin-top: 2rem;
-  background: rgba(245, 158, 11, 0.1);
-  color: var(--color-warning);
-  padding: 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  font-weight: 600;
-  text-align: center;
-}
-
-.statusBannerApproved {
-  margin-top: 2rem;
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--color-success);
-  padding: 1rem;
-  border-radius: var(--radius-sm);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-  font-weight: 600;
-  text-align: center;
-}
-
-.missionActiveAlert {
-  text-align: center;
-  margin-top: 4rem;
-}
-
-.missionTitlePulse {
-  font-size: 3rem;
-  font-weight: 800;
-  margin: 0 0 1rem 0;
-  color: var(--color-warning);
-  animation: pulseHuge 1s infinite alternate;
-}
-
-@keyframes pulseHuge {
-  from { transform: scale(1); }
-  to { transform: scale(1.02); }
-}
-
 /* WAITING ROOM */
 .waitingRoom {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
+  min-height: 100vh;
+  background: var(--bg-main);
 }
 
 .waitingCard {
-  background: var(--bg-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  background: transparent;
   padding: 4rem;
-  text-align: center;
   max-width: 500px;
   width: 100%;
+  border-left: 4px solid var(--color-accent);
 }
 
 .waitingCard h1 {
-  font-size: 2rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.5rem;
   margin-bottom: 1rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-accent);
 }
 
 .joinForm {
@@ -304,15 +42,16 @@
 }
 
 .joinInput {
-  background: var(--bg-main);
-  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-glass-strong);
   color: var(--text-main);
-  padding: 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 1.25rem;
+  padding: 1.5rem;
+  font-size: 2rem;
   text-align: center;
   text-transform: uppercase;
   outline: none;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.3em;
 }
 
 .joinInput:focus {
@@ -321,14 +60,15 @@
 
 .joinBtn {
   background: var(--color-accent);
-  color: #fff;
+  color: #000;
   border: none;
-  padding: 1.25rem;
-  border-radius: var(--radius-md);
-  font-size: 1.125rem;
-  font-weight: 700;
+  padding: 1.5rem;
+  font-size: 1.25rem;
+  font-weight: 800;
   cursor: pointer;
   transition: opacity 0.2s;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .joinBtn:hover:not(:disabled) {
@@ -344,11 +84,318 @@
   color: var(--color-danger);
   margin-top: 1.5rem;
   font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .loading, .error {
-  text-align: center;
-  padding: 5rem;
-  font-size: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.5rem;
   color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* HEADER BAR */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 4rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.systemLabel {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--color-accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.teamBadge {
+  font-size: 3rem;
+  font-weight: 900;
+  color: var(--text-main);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.progressBar {
+  width: 200px;
+  height: 4px;
+  background: var(--border-glass);
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  transition: width 0.5s ease-out;
+}
+
+.progressText {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+/* ANNOUNCEMENT */
+.announcementBanner {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-accent);
+  padding: 1.5rem 2rem;
+  border: 1px solid var(--color-accent);
+  margin-bottom: 3rem;
+  font-weight: 700;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.announcementBanner::before {
+  content: 'SYSTEM BROADCAST';
+  background: var(--color-accent);
+  color: #000;
+  padding: 0.25rem 0.75rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+/* MAIN CANVAS */
+.mainCard {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.subLabel {
+  color: var(--color-danger);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.15em;
+}
+
+/* MISSIONS */
+.missionActive {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 900px;
+}
+
+.missionTitleActive {
+  font-size: 5rem;
+  font-weight: 900;
+  margin: 0 0 1.5rem 0;
+  color: var(--text-main);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.missionDesc {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 4rem 0;
+  max-width: 800px;
+}
+
+.missionCenter {
+  text-align: start;
+  margin-top: 2rem;
+}
+
+.missionTitle {
+  font-size: 4rem;
+  font-weight: 900;
+  margin: 0 0 1.5rem 0;
+  color: var(--text-main);
+  text-transform: uppercase;
+}
+
+.missionTitlePulse {
+  font-size: 5rem;
+  font-weight: 900;
+  margin: 0 0 1.5rem 0;
+  color: var(--color-warning);
+  animation: pulseHuge 1.5s infinite alternate;
+  text-transform: uppercase;
+}
+
+@keyframes pulseHuge {
+  from { opacity: 1; }
+  to { opacity: 0.5; }
+}
+
+/* MASSIVE CHECKLIST */
+.missionChecklist {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 4rem;
+  width: 100%;
+}
+
+.tasksHeader {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.taskItem {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: transparent;
+  border: 1px solid var(--border-glass-strong);
+  padding: 1.5rem 2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.taskItem:hover {
+  border-color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.taskCompleted {
+  opacity: 0.5;
+  text-decoration: line-through;
+  border-color: var(--border-glass);
+}
+
+.taskItem input[type="checkbox"] {
+  width: 1.5rem;
+  height: 1.5rem;
+  cursor: pointer;
+  accent-color: var(--color-accent);
+}
+
+/* ACTIONS */
+.actionGroup {
+  display: flex;
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.secondaryBtnWarning {
+  padding: 1.25rem 3rem;
+  font-size: 1.1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+  text-transform: uppercase;
+}
+
+.secondaryBtnWarning:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.secondaryBtnWarning:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.secondaryBtn {
+  padding: 1.25rem 3rem;
+  font-size: 1.1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 800;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--border-glass-strong);
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+
+.secondaryBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--text-main);
+}
+
+.primaryBtnWarning {
+  padding: 1.25rem 3rem;
+  font-size: 1.1rem;
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 800;
+  cursor: pointer;
+  background: var(--text-main);
+  color: #000;
+  border: none;
+  text-transform: uppercase;
+  margin-top: 2rem;
+}
+
+/* STATUS BANNERS */
+.statusBannerPending {
+  margin-top: 2rem;
+  color: var(--color-warning);
+  padding: 1.5rem;
+  border: 1px dashed var(--color-warning);
+  font-weight: 700;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+}
+
+.statusBannerApproved {
+  margin-top: 2rem;
+  color: var(--color-success);
+  padding: 1.5rem;
+  border: 1px dashed var(--color-success);
+  font-weight: 700;
+  text-align: center;
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+}
+
+.missionActiveAlert {
+  text-align: start;
+  margin-top: 2rem;
+}
+
+@media (max-width: 768px) {
+  .actionGroup {
+    flex-direction: column;
+  }
+  
+  .missionTitleActive, .missionTitlePulse, .missionTitle {
+    font-size: 3rem;
+  }
 }

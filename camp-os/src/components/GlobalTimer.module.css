@@ -38,6 +38,14 @@
   color: var(--warning);
 }
 
+.countUpMode {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.countUpMode .timerValue {
+  color: var(--accent-blue);
+}
+
 @keyframes pulse {
   from { opacity: 1; }
   to { opacity: 0.5; }

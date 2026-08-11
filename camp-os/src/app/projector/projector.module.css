@@ -7,6 +7,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  font-family: 'IBM Plex Sans Arabic', sans-serif;
 }
 
 .centerBox {
@@ -22,27 +23,29 @@
 
 .glitchText {
   font-size: 8rem;
-  font-weight: 800;
+  font-weight: 900;
   margin: 0;
   letter-spacing: normal;
-  background: linear-gradient(135deg, #fff, var(--text-secondary));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  text-transform: uppercase;
+  color: var(--text-main);
 }
 
 .fireText {
   font-size: 8rem;
-  font-weight: 800;
+  font-weight: 900;
   margin: 0;
   color: var(--color-warning);
+  text-transform: uppercase;
 }
 
 .alertText {
   font-size: 8rem;
-  font-weight: 800;
+  font-weight: 900;
   margin: 0;
   color: var(--color-danger);
   animation: flash 1s infinite alternate;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 @keyframes flash {
@@ -52,20 +55,23 @@
 
 .subtitle {
   font-size: 3rem;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-secondary);
   margin: 0;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.1em;
 }
 
 .announcementBox {
   margin-top: 4rem;
-  padding: 2.5rem 5rem;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--text-main);
+  padding: 3rem 6rem;
+  background: transparent;
+  border: 2px solid var(--color-accent);
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  text-transform: uppercase;
 }
 
 /* BUILD SCREEN */
@@ -74,14 +80,16 @@
   height: 100%;
   display: flex;
   flex-direction: column;
-  padding: 5rem;
-  gap: 4rem;
+  padding: 6rem;
+  gap: 5rem;
 }
 
 .buildHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  border-bottom: 2px solid var(--border-glass-strong);
+  padding-bottom: 3rem;
 }
 
 .headerTitleRow {
@@ -91,13 +99,15 @@
 }
 
 .phaseTitle {
-  font-size: 4.5rem;
-  font-weight: 800;
+  font-size: 5rem;
+  font-weight: 900;
   margin: 0;
   display: flex;
   align-items: center;
   gap: 2rem;
   color: var(--text-main);
+  text-transform: uppercase;
+  line-height: 1.1;
 }
 
 .liveDot {
@@ -115,47 +125,49 @@
 }
 
 .announcementBoxAlt {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-accent);
   padding: 2rem 4rem;
-  border-radius: var(--radius-pill);
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  text-transform: uppercase;
 }
 
 .podiumContainer {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2.5rem;
   justify-content: center;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   width: 100%;
 }
 
 .podiumRow {
   display: grid;
-  grid-template-columns: 100px 350px 1fr 150px;
+  grid-template-columns: 100px 450px 1fr 150px;
   align-items: center;
-  gap: 3rem;
-  background: var(--bg-card);
-  padding: 2rem 3rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-subtle);
+  gap: 4rem;
+  background: transparent;
+  padding: 2.5rem 4rem;
+  border: 1px solid var(--border-glass-strong);
 }
 
 .podiumFirst {
-  background: var(--bg-elevated);
+  background: rgba(255, 255, 255, 0.03);
   border-color: var(--color-accent);
   transform: scale(1.02);
   z-index: 10;
+  border-left: 8px solid var(--color-accent);
 }
 
 .podiumRank {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 800;
   color: var(--text-muted);
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .podiumFirst .podiumRank {
@@ -163,16 +175,16 @@
 }
 
 .podiumName {
-  font-size: 2.5rem;
-  font-weight: 700;
+  font-size: 3.5rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .podiumBarContainer {
   height: 24px;
-  background: var(--bg-main);
-  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--border-glass-strong);
 }
 
 .podiumBarFill {
@@ -185,29 +197,30 @@
 }
 
 .podiumScore {
-  font-size: 2.5rem;
+  font-size: 3rem;
   font-weight: 800;
   text-align: end;
   color: var(--text-main);
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 /* CHECKPOINT */
 .checkpointGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 2rem;
+  gap: 3rem;
   justify-content: center;
-  max-width: 1400px;
-  margin-top: 5rem;
+  max-width: 1600px;
+  margin-top: 6rem;
 }
 
 .checkpointPill {
-  font-size: 2.5rem;
-  font-weight: 700;
-  padding: 2rem 4rem;
-  border-radius: var(--radius-pill);
-  background: var(--bg-elevated);
-  border: 2px solid var(--border-strong);
+  font-size: 3.5rem;
+  font-weight: 800;
+  padding: 2.5rem 5rem;
+  background: transparent;
+  border: 2px solid var(--border-glass-strong);
+  text-transform: uppercase;
 }
 
 .pending {
@@ -224,60 +237,76 @@
 
 /* DEMO DAY ACTIVE */
 .activeTeamBox {
-  margin-top: 5rem;
-  background: var(--bg-elevated);
-  padding: 6rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border-strong);
+  margin-top: 6rem;
+  background: transparent;
+  padding: 8rem;
+  border: 1px solid var(--border-glass-strong);
+  border-left: 8px solid var(--color-accent);
   width: 100%;
-  max-width: 1600px;
+  max-width: 1800px;
+  text-align: left;
 }
 
 .upNext {
   color: var(--color-warning);
-  font-size: 2.5rem;
-  margin-bottom: 3rem;
-  font-weight: 700;
+  font-size: 3.5rem;
+  margin-bottom: 4rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.1em;
 }
 
 .massiveTeamName {
-  font-size: 8rem;
-  font-weight: 800;
-  margin: 0 0 2rem 0;
+  font-size: 10rem;
+  font-weight: 900;
+  margin: 0 0 3rem 0;
   color: var(--text-main);
   line-height: 1.1;
+  text-transform: uppercase;
 }
 
 .projectIdea {
-  font-size: 3rem;
+  font-size: 4rem;
   color: var(--text-secondary);
   font-weight: 500;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 .massiveScore {
-  margin-top: 5rem;
-  font-size: 14rem;
-  font-weight: 800;
+  margin-top: 6rem;
+  font-size: 16rem;
+  font-weight: 900;
   color: var(--color-success);
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .projectorTimer {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  padding: 1rem 2.5rem;
-  border-radius: var(--radius-md);
-  font-size: 4.5rem;
-  font-weight: 800;
+  background: transparent;
+  border: 2px solid var(--border-glass-strong);
+  padding: 1.5rem 3.5rem;
+  font-size: 6rem;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
   color: var(--color-accent);
+  font-family: 'IBM Plex Mono', monospace;
 }
 
 .timerWarning {
   color: var(--color-danger);
+  border-color: var(--color-danger);
   animation: pulseHuge 1s infinite alternate;
 }
 
+.timerPaused {
+  opacity: 0.5;
+}
+
 .loading {
-  font-size: 3rem;
+  font-size: 4rem;
   color: var(--text-secondary);
+  font-family: 'IBM Plex Mono', monospace;
+  text-transform: uppercase;
+  font-weight: 800;
 }

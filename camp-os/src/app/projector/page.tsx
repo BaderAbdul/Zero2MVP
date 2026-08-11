@@ -1,58 +1,68 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTeams, useDemoScores } from '@/lib/services/CampContext';
 import { useCampEngine } from '@/lib/services/campEngine';
 import styles from './projector.module.css';
 
 const variants = {
-  initial: { opacity: 0, scale: 0.95 },
+  initial: { opacity: 0, scale: 0.98 },
   animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 1.05 }
+  exit: { opacity: 0, scale: 1.02 }
 };
 
 export default function ProjectorScreen() {
-  const { isLoaded, globalState, currentRoSPhase, isBreak, timeRemainingSeconds, isTimerRunning } = useCampEngine();
+  const { isLoaded, globalState, currentRoSPhase, isBreak, timeRemainingSeconds, timeElapsedSeconds, timerMode, isTimerPaused, activeCustomStage } = useCampEngine();
   const teams = useTeams();
 
   // Local seconds state for smooth live countdown on projector
-  const [displaySeconds, setDisplaySeconds] = React.useState(timeRemainingSeconds || 0);
+  const [displaySeconds, setDisplaySeconds] = useState(0);
 
-  React.useEffect(() => {
-    setDisplaySeconds(timeRemainingSeconds || 0);
-    if (!isTimerRunning) return;
+  useEffect(() => {
+    // Sync with engine
+    if (timerMode === 'countup') {
+      setDisplaySeconds(timeElapsedSeconds);
+    } else {
+      setDisplaySeconds(timeRemainingSeconds || 0);
+    }
+    
+    if (isTimerPaused || timerMode === 'hidden') return;
     
     const interval = setInterval(() => {
-      setDisplaySeconds((prev) => (prev <= 0 ? 0 : prev - 1));
+      setDisplaySeconds((prev) => {
+        if (timerMode === 'countup') return prev + 1;
+        return prev <= 0 ? 0 : prev - 1;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeRemainingSeconds, isTimerRunning]);
+  }, [timeRemainingSeconds, timeElapsedSeconds, isTimerPaused, timerMode]);
 
   const activeTeamScores = useDemoScores(globalState?.activeDemoTeamId || undefined);
   const derivedTotalScore = activeTeamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
   const maxPossibleScore = activeTeamScores.length > 0 ? activeTeamScores.length * 50 : 50;
 
-  if (!isLoaded || !globalState) return <div className={styles.projectorContainer}><div className={styles.loading}>جاري تجهيز شاشة العرض...</div></div>;
+  if (!isLoaded || !globalState) return <div className={styles.projectorContainer}><div className={styles.loading}>INITIALIZING DISPLAY...</div></div>;
 
   const renderTimer = () => {
-    if (!isTimerRunning && !isBreak) return null;
+    if (timerMode === 'hidden' && !isBreak) return null;
+    if (!globalState.timerStartTime && !globalState.timerEndTime && !isBreak) return null;
     
-    const m = Math.floor(displaySeconds / 60);
-    const s = displaySeconds % 60;
+    const m = Math.floor(Math.max(0, displaySeconds) / 60);
+    const s = Math.max(0, displaySeconds) % 60;
     const formatted = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     
     if (isBreak) {
       return (
         <div className={styles.projectorTimer}>
-          <span className={styles.timerValue}>متوقف مؤقتًا</span>
+          <span className={styles.timerValue}>PAUSED</span>
         </div>
       );
     }
     
     return (
-      <div className={`${styles.projectorTimer} ${displaySeconds < 60 ? styles.timerWarning : ''}`}>
+      <div className={`${styles.projectorTimer} ${(timerMode === 'countdown' && displaySeconds < 60) ? styles.timerWarning : ''} ${isTimerPaused ? styles.timerPaused : ''}`}>
         <span className={styles.timerValue}>{formatted}</span>
       </div>
     );
@@ -62,8 +72,8 @@ export default function ProjectorScreen() {
     if (isBreak) {
       return (
         <motion.div key="break" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
-          <h1 className={styles.glitchText}>وقت الاستراحة</h1>
-          <h2 className={styles.subtitle}>خذ قسطًا من الراحة</h2>
+          <h1 className={styles.glitchText}>SYSTEM PAUSE</h1>
+          <h2 className={styles.subtitle}>وقت الاستراحة</h2>
           {renderTimer()}
           {globalState.announcement && (
             <div className={styles.announcementBox}>{globalState.announcement}</div>
@@ -76,15 +86,15 @@ export default function ProjectorScreen() {
       const activeTeam = teams.find(t => t.id === globalState.activeDemoTeamId);
       return (
         <motion.div key="demoday" className={styles.centerBox} {...variants}>
-          <h1 className={styles.fireText}>🔥 يوم العروض 🔥</h1>
+          <h1 className={styles.fireText}>DEMO DAY</h1>
           {activeTeam && (
             <div className={styles.activeTeamBox}>
               <h2 className={styles.upNext}>
-                {currentRoSPhase.id === 'demo_day_queue' && 'في الانتظار...'}
-                {currentRoSPhase.id === 'demo_day_intro' && 'التالي على المسرح'}
-                {currentRoSPhase.id === 'demo_day_presenting' && 'يعرض الآن'}
-                {currentRoSPhase.id === 'demo_day_judging' && 'جاري تقييم المحكّمين...'}
-                {currentRoSPhase.id === 'demo_day_reveal' && 'النتيجة النهائية'}
+                {currentRoSPhase.id === 'demo_day_queue' && '[ STANDBY ]'}
+                {currentRoSPhase.id === 'demo_day_intro' && '[ ON DECK ]'}
+                {currentRoSPhase.id === 'demo_day_presenting' && '[ LIVE ON STAGE ]'}
+                {currentRoSPhase.id === 'demo_day_judging' && '[ JUDGING IN PROGRESS ]'}
+                {currentRoSPhase.id === 'demo_day_reveal' && '[ FINAL SCORE ]'}
               </h2>
               <h1 className={styles.massiveTeamName}>{activeTeam.name}</h1>
               <p className={styles.projectIdea}>"{activeTeam.projectIdea}"</p>
@@ -105,28 +115,57 @@ export default function ProjectorScreen() {
       );
     }
 
+    const displayTitle = activeCustomStage ? activeCustomStage.title : currentRoSPhase.title;
+
     switch (currentRoSPhase.id) {
       case 'setup':
       case 'welcome':
         return (
           <motion.div key="welcome" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
-            <h1 className={styles.glitchText}>FROM ZERO TO MVP</h1>
-            <h2 className={styles.subtitle}>هل أنتم مستعدون؟</h2>
+            <h1 className={styles.glitchText}>CAMP OS</h1>
+            <h2 className={styles.subtitle}>LIVE COMMAND SYSTEM INITIALIZED</h2>
             {globalState.announcement && (
               <div className={styles.announcementBox}>{globalState.announcement}</div>
             )}
           </motion.div>
         );
 
+      case 'checkpoint':
+        return (
+          <motion.div key="checkpoint" className={styles.centerBox} {...variants}>
+            <h1 className={styles.alertText}>CHECKPOINT</h1>
+            <h2 className={styles.subtitle}>SUBMIT WORK FOR REVIEW</h2>
+            {renderTimer()}
+            <div className={styles.checkpointGrid}>
+               {teams.map(team => (
+                 <div key={team.id} className={`${styles.checkpointPill} ${styles[team.checkpointStatus]}`}>
+                   {team.name}
+                 </div>
+               ))}
+            </div>
+          </motion.div>
+        );
+
+      case 'finished':
+        return (
+          <motion.div key="finished" className={styles.centerBox} {...variants}>
+            <h1 className={styles.glitchText}>MISSION ACCOMPLISHED</h1>
+            <h2 className={styles.subtitle}>END OF CAMP</h2>
+          </motion.div>
+        );
+
       case 'ideation':
       case 'build':
+      case 'custom':
+      default:
+        // Main leaderboard / build view
         return (
           <motion.div key="build" className={styles.buildScreen} {...variants}>
             <div className={styles.buildHeader}>
               <div className={styles.headerTitleRow}>
                 <h1 className={styles.phaseTitle}>
                   <span className={styles.liveDot}></span>
-                  {currentRoSPhase.title.toUpperCase()}
+                  {displayTitle}
                 </h1>
                 {renderTimer()}
               </div>
@@ -161,34 +200,6 @@ export default function ProjectorScreen() {
             </div>
           </motion.div>
         );
-
-      case 'checkpoint':
-        return (
-          <motion.div key="checkpoint" className={styles.centerBox} {...variants}>
-            <h1 className={styles.alertText}>🚨 نقطة التحقق 🚨</h1>
-            <h2 className={styles.subtitle}>أرسل عملك للمراجعة الآن</h2>
-            {renderTimer()}
-            <div className={styles.checkpointGrid}>
-               {teams.map(team => (
-                 <div key={team.id} className={`${styles.checkpointPill} ${styles[team.checkpointStatus]}`}>
-                   {team.name}
-                 </div>
-               ))}
-            </div>
-          </motion.div>
-        );
-
-      case 'finished':
-        // For MVP finished screen, we'll just display a generic "Finished" if we can't fetch all scores.
-        return (
-          <motion.div key="finished" className={styles.centerBox} {...variants}>
-            <h1 className={styles.glitchText}>🏆 انتهى يوم العروض</h1>
-            <h2 className={styles.subtitle}>عمل رائع للجميع</h2>
-          </motion.div>
-        );
-
-      default:
-        return <div>مرحلة غير معروفة</div>;
     }
   };
 
