@@ -6,6 +6,13 @@ import { useTeams } from '@/lib/services/CampContext';
 import styles from './projector.module.css';
 
 function ProjectorContent() {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const int = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(int);
+  }, []);
+
   const { 
     isLoaded, globalState, activeSession, nextSession, 
     formattedTime, isBreak, isDemoDay, activeDemoTeam

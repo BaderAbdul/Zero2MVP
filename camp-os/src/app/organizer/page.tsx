@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCampContext, useTeams } from '@/lib/services/CampContext';
 import { useCampEngine, SESSION_PRESETS } from '@/lib/services/campEngine';
 import { Session, Team, Organizer } from '@/lib/services/types';
@@ -13,6 +13,13 @@ type ActiveTab = 'camp_control' | 'people_teams';
 const SUPER_ADMIN_EMAIL = 'ebaderabdul@gmail.com';
 
 export default function OrganizerHub() {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const int = setInterval(() => setTick(t => t + 1), 1000);
+    return () => clearInterval(int);
+  }, []);
+
   const { provider, currentUser, setCurrentUser } = useCampContext();
   const { 
     isLoaded, globalState, sessions, activeSession, activeSessionIndex, nextSession,
