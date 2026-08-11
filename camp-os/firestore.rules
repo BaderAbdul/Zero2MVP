@@ -6,28 +6,32 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+
+    function isSuperAdmin() {
+      return isSignedIn() && (request.auth.token.email == 'ebaderabdul@gmail.com');
+    }
     
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isRole(role) {
-      return isSignedIn() && getUserData().role == role;
+      return isSignedIn() && (isSuperAdmin() || getUserData().role == role);
     }
     
     function isStaffAllowlisted(email, role) {
       let docData = get(/databases/$(database)/documents/staff_allowlist/$(email)).data;
-      return docData != null && docData.role == role;
+      return docData != null && (docData.role == role || docData.role == 'organizer');
     }
 
     // users
     match /users/{userId} {
       allow read: if isSignedIn();
       
-      // A user can create their profile.
-      // Default to 'participant'.
-      // If requesting a staff role, must be explicitly authorized in staff_allowlist by email.
+      // Profile Creation:
+      // SuperAdmin or Staff Allowlisted or Participant
       allow create: if isSignedIn() && request.auth.uid == userId && (
+        isSuperAdmin() ||
         (request.resource.data.role == 'participant') ||
         (request.auth.token.email != null && isStaffAllowlisted(request.auth.token.email, request.resource.data.role))
       );
@@ -56,7 +60,7 @@ service cloud.firestore {
     match /camp_os/global_state {
       // Publicly readable for all connected clients (projector, participants, etc.)
       allow read: if true;
-      // Only organizer can modify global state
+      // Only organizer / super admin can modify global state
       allow write: if isRole('organizer');
     }
 
@@ -115,8 +119,8 @@ service cloud.firestore {
     match /demo_scores/{scoreId} {
       allow read: if true;
       
-      // Judges or Organizers can create/update scores
-      allow create, update: if (isRole('judge') || isRole('organizer')) && 
+      // Judges, Mentors or Organizers can create/update scores
+      allow create, update: if (isRole('judge') || isRole('mentor') || isRole('organizer')) && 
         scoreId == (request.resource.data.teamId + '_' + request.auth.uid);
       
       allow write: if isRole('organizer');

@@ -3,13 +3,17 @@
 import React, { useState } from 'react';
 import { useCampContext, useTeams } from '@/lib/services/CampContext';
 import { useCampEngine, SESSION_PRESETS } from '@/lib/services/campEngine';
-import { Session, Team } from '@/lib/services/types';
+import { Session, Team, Organizer } from '@/lib/services/types';
+import { auth, googleProvider } from '@/lib/services/firebase';
+import { signInWithPopup } from 'firebase/auth';
 import styles from './organizer.module.css';
 
 type ActiveTab = 'camp_control' | 'people_teams';
 
+const SUPER_ADMIN_EMAIL = 'ebaderabdul@gmail.com';
+
 export default function OrganizerHub() {
-  const { provider, currentUser } = useCampContext();
+  const { provider, currentUser, setCurrentUser } = useCampContext();
   const { 
     isLoaded, globalState, sessions, activeSession, activeSessionIndex, nextSession,
     timerMode, isTimerPaused, formattedTime, needsAttentionTeams
@@ -39,7 +43,16 @@ export default function OrganizerHub() {
   const [editTeamIdeaInput, setEditTeamIdeaInput] = useState('');
   const [editTeamCodeInput, setEditTeamCodeInput] = useState('');
 
+  // Staff Assignment Modal
   const [showAddOrganizerModal, setShowAddOrganizerModal] = useState(false);
+  const [newStaffNameInput, setNewStaffNameInput] = useState('');
+  const [newStaffEmailInput, setNewStaffEmailInput] = useState('');
+  const [newStaffRoleInput, setNewStaffRoleInput] = useState<Organizer['role']>('organizer');
+
+  // Staff List State
+  const [staffList, setStaffList] = useState<Array<{ id: string; name: string; email: string; role: string }>>([
+    { id: 'sa-1', name: 'بدر عبدالرحمن (المنظم الرئيسي)', email: SUPER_ADMIN_EMAIL, role: 'Super Admin / Lead' }
+  ]);
 
   // Confirmation Guard Modal
   const [confirmAction, setConfirmAction] = useState<{
@@ -51,6 +64,37 @@ export default function OrganizerHub() {
   // Check-in note modal
   const [checkInTeam, setCheckInTeam] = useState<Team | null>(null);
   const [checkInNoteInput, setCheckInNoteInput] = useState('');
+
+  const isSuperAdmin = currentUser?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+  const handleGoogleAuthForOrganizer = async () => {
+    try {
+      const res = await signInWithPopup(auth, googleProvider);
+      if (res.user) {
+        const userEmail = res.user.email?.toLowerCase();
+        const organizerUser = {
+          id: res.user.uid,
+          name: res.user.displayName || res.user.email?.split('@')[0] || 'منسق المعسكر',
+          role: 'organizer' as const,
+          email: res.user.email || undefined,
+          campId: 'Z2MVP'
+        };
+
+        setCurrentUser(organizerUser);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('camp_os_session', JSON.stringify({
+            participantId: res.user.uid,
+            participantName: organizerUser.name,
+            role: 'organizer',
+            email: res.user.email,
+            campId: 'Z2MVP'
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Auth error:", err);
+    }
+  };
 
   if (!isLoaded || !globalState) {
     return (
@@ -193,6 +237,29 @@ export default function OrganizerHub() {
     await provider.updateGlobalState({ activeDemoTeamId: teamId });
   };
 
+  const handleAddStaffSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffNameInput.trim() || !newStaffEmailInput.trim()) return;
+
+    if (provider.addOrganizer) {
+      await provider.addOrganizer(newStaffNameInput.trim(), newStaffRoleInput, newStaffEmailInput.trim());
+    }
+
+    setStaffList(prev => [
+      ...prev,
+      {
+        id: 'st-' + Math.random().toString(36).substr(2, 5),
+        name: newStaffNameInput.trim(),
+        email: newStaffEmailInput.trim(),
+        role: newStaffRoleInput === 'lead' ? 'منظم رئيسي' : newStaffRoleInput === 'technical' ? 'مرشد تقني' : newStaffRoleInput === 'product' ? 'مرشد منتجات' : 'منسق/محكّم'
+      }
+    ]);
+
+    setNewStaffNameInput('');
+    setNewStaffEmailInput('');
+    setShowAddOrganizerModal(false);
+  };
+
   return (
     <div className={styles.container}>
       {/* TOP NAVIGATION HEADER & WORKSPACE SWITCHER */}
@@ -202,22 +269,36 @@ export default function OrganizerHub() {
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-green)' }}></span>
             <span>LIVE OPERATIONAL COMMAND</span>
           </div>
-          <span style={{ fontSize: '1.1rem', fontWeight: 900 }}>FROM ZERO TO MVP · CAMP OS 7.0</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: 900 }}>
+            FROM ZERO TO MVP · CAMP OS {isSuperAdmin ? '(SUPER ADMIN: ebaderabdul@gmail.com)' : ''}
+          </span>
         </div>
 
-        <div className={styles.workspaceTabs}>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'camp_control' ? styles.tabBtnActive : ''}`}
-            onClick={() => setActiveTab('camp_control')}
-          >
-            🕹️ CAMP CONTROL (غرفة التحكم)
-          </button>
-          <button 
-            className={`${styles.tabBtn} ${activeTab === 'people_teams' ? styles.tabBtnActive : ''}`}
-            onClick={() => setActiveTab('people_teams')}
-          >
-            👥 PEOPLE & TEAMS ({needsAttentionTeams.length > 0 ? `⚠️ ${needsAttentionTeams.length}` : teams.length})
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          {!currentUser ? (
+            <button className={`${styles.tabBtn} ${styles.tabBtnActive}`} onClick={handleGoogleAuthForOrganizer}>
+              🔒 تسجيل الدخول بواسطة Google
+            </button>
+          ) : (
+            <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>
+              مرحباً {currentUser.name} {isSuperAdmin ? '👑 (Super Admin)' : ''}
+            </div>
+          )}
+
+          <div className={styles.workspaceTabs}>
+            <button 
+              className={`${styles.tabBtn} ${activeTab === 'camp_control' ? styles.tabBtnActive : ''}`}
+              onClick={() => setActiveTab('camp_control')}
+            >
+              🕹️ CAMP CONTROL (غرفة التحكم)
+            </button>
+            <button 
+              className={`${styles.tabBtn} ${activeTab === 'people_teams' ? styles.tabBtnActive : ''}`}
+              onClick={() => setActiveTab('people_teams')}
+            >
+              👥 PEOPLE & TEAMS ({needsAttentionTeams.length > 0 ? `⚠️ ${needsAttentionTeams.length}` : teams.length})
+            </button>
+          </div>
         </div>
       </header>
 
@@ -383,6 +464,35 @@ export default function OrganizerHub() {
       {/* WORKSPACE 2: PEOPLE & TEAMS */}
       {activeTab === 'people_teams' && (
         <div className={styles.peopleWorkspace}>
+          {/* STAFF MANAGEMENT LIST (SUPER ADMIN / LEAD ORGANIZER ONLY) */}
+          <section className={styles.directorySection} style={{ borderLeft: '4px solid var(--color-blue)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 900 }}>فريق التنظيم والتدريب والتحكيم المعتمد ({staffList.length})</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                  إدارة الصلاحيات وتعيين المدربين والمحكمين المعينين من قبل {SUPER_ADMIN_EMAIL}
+                </p>
+              </div>
+              <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={() => setShowAddOrganizerModal(true)}>
+                + تعيين مدرب / منظم / محكم
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+              {staffList.map(st => (
+                <div key={st.id} style={{ padding: '0.85rem 1rem', background: 'var(--bg-surface)', border: '1.5px solid var(--border-main)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{st.name}</div>
+                    <div style={{ fontFamily: 'IBM Plex Mono', fontSize: '0.75rem', color: 'var(--text-muted)' }}>{st.email}</div>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, padding: '0.2rem 0.5rem', background: '#EFF6FF', color: 'var(--color-blue)', border: '1px solid var(--color-blue)' }}>
+                    {st.role}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* NEEDS ATTENTION QUEUE */}
           <section className={styles.needsAttentionSection}>
             <div className={styles.needsAttentionHeading}>
@@ -449,14 +559,9 @@ export default function OrganizerHub() {
           <section className={styles.directorySection}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>دليل الفرق وإدارتها ({teams.length})</h2>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button className={styles.actionBtn} onClick={() => setShowAddOrganizerModal(true)}>
-                  + إضافة منظم
-                </button>
-                <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={() => setShowCreateTeamModal(true)}>
-                  + إنشاء فريق جديد
-                </button>
-              </div>
+              <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={() => setShowCreateTeamModal(true)}>
+                + إنشاء فريق جديد
+              </button>
             </div>
 
             <div className={styles.teamsGrid}>
@@ -514,6 +619,59 @@ export default function OrganizerHub() {
               ))}
             </div>
           </section>
+        </div>
+      )}
+
+      {/* ADD STAFF MODAL (ROLES ASSIGNMENT BY SUPER ADMIN) */}
+      {showAddOrganizerModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowAddOrganizerModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.4rem', fontWeight: 900 }}>تعيين عضو جديد في فريق الإدارة / التدريب</h2>
+            <form onSubmit={handleAddStaffSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>الاسم الكامل</label>
+                <input
+                  type="text"
+                  className={styles.inputField}
+                  placeholder="مثال: د. أحمد المنسق"
+                  value={newStaffNameInput}
+                  onChange={(e) => setNewStaffNameInput(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>البريد الإلكتروني (Google Email)</label>
+                <input
+                  type="email"
+                  className={styles.inputField}
+                  placeholder="name@gmail.com"
+                  value={newStaffEmailInput}
+                  onChange={(e) => setNewStaffEmailInput(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '0.25rem' }}>الدور والصلاحية</label>
+                <select
+                  className={styles.inputField}
+                  value={newStaffRoleInput}
+                  onChange={(e) => setNewStaffRoleInput(e.target.value as any)}
+                >
+                  <option value="organizer">منظّم ومسؤول جلسات (Organizer)</option>
+                  <option value="technical">مرشد تقني (Technical Mentor)</option>
+                  <option value="product">مرشد منتجات (Product Mentor)</option>
+                  <option value="lead">منسق رئيسي (Lead Organizer)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem' }}>
+                <button type="button" className={styles.actionBtn} onClick={() => setShowAddOrganizerModal(false)} style={{ width: '35%' }}>إلغاء</button>
+                <button type="submit" className={`${styles.actionBtn} ${styles.primaryActionBtn}`} style={{ width: '65%' }}>اعتماد وإضافة الصلاحية ←</button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
