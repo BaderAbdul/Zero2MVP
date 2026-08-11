@@ -24,7 +24,8 @@ function ProjectorContent() {
   }
 
   // Sorted teams by progress for momentum display
-  const sortedTeams = [...teams].sort((a, b) => (b.progressPercentage || 0) - (a.progressPercentage || 0)).slice(0, 5);
+  const safeTeams = Array.isArray(teams) ? teams : [];
+  const sortedTeams = [...safeTeams].sort((a, b) => (b?.progressPercentage || 0) - (a?.progressPercentage || 0)).slice(0, 5);
 
   return (
     <div className={styles.projectorShell}>
@@ -175,24 +176,25 @@ class ProjectorErrorBoundary extends React.Component<{ children: React.ReactNode
   }
 }
 
-import dynamic from 'next/dynamic';
+export default function AuditoriumProjector() {
+  const [mounted, setMounted] = useState(false);
 
-function ProjectorView() {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className={styles.projectorShell} style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+        <h1 className={styles.brandTitle}>FROM ZERO TO MVP</h1>
+        <p style={{ fontSize: '1.5rem', marginTop: '1rem' }}>جاري تحميل شاشة عرض القاعة...</p>
+      </div>
+    );
+  }
+
   return (
     <ProjectorErrorBoundary>
       <ProjectorContent />
     </ProjectorErrorBoundary>
   );
 }
-
-const AuditoriumProjector = dynamic(() => Promise.resolve(ProjectorView), {
-  ssr: false,
-  loading: () => (
-    <div className={styles.projectorShell} style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
-      <h1 className={styles.brandTitle}>FROM ZERO TO MVP</h1>
-      <p style={{ fontSize: '1.5rem', marginTop: '1rem' }}>جاري تحميل شاشة عرض القاعة...</p>
-    </div>
-  )
-});
-
-export default AuditoriumProjector;
