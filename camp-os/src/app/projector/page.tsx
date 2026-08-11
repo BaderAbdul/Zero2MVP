@@ -141,21 +141,58 @@ function ProjectorContent() {
   );
 }
 
-export default function AuditoriumProjector() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div className={styles.projectorShell} style={{ justifyContent: 'center', alignItems: 'center' }}>
-        <h1 className={styles.brandTitle}>FROM ZERO TO MVP</h1>
-        <p style={{ fontSize: '1.5rem', marginTop: '1rem' }}>جاري تحميل شاشة عرض القاعة...</p>
-      </div>
-    );
+class ProjectorErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: string }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: '' };
   }
 
-  return <ProjectorContent />;
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error: String(error?.message || error) };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error('Projector Error Boundary caught error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '3rem', textAlign: 'center', background: '#FFF', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+          <h1 style={{ color: '#E11D48', fontSize: '2.5rem', marginBottom: '1rem' }}>خطأ في شاشة العرض</h1>
+          <p style={{ fontSize: '1.25rem', color: '#4B5563', marginBottom: '2rem' }}>حدث تعارض أو خطأ أثناء تحميل الشاشة: {this.state.error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            style={{ padding: '0.75rem 2rem', background: '#2563EB', color: '#FFF', border: 'none', borderRadius: '8px', fontSize: '1.1rem', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            إعادة تحميل الشاشة
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
+
+import dynamic from 'next/dynamic';
+
+function ProjectorView() {
+  return (
+    <ProjectorErrorBoundary>
+      <ProjectorContent />
+    </ProjectorErrorBoundary>
+  );
+}
+
+const AuditoriumProjector = dynamic(() => Promise.resolve(ProjectorView), {
+  ssr: false,
+  loading: () => (
+    <div className={styles.projectorShell} style={{ justifyContent: 'center', alignItems: 'center', display: 'flex' }}>
+      <h1 className={styles.brandTitle}>FROM ZERO TO MVP</h1>
+      <p style={{ fontSize: '1.5rem', marginTop: '1rem' }}>جاري تحميل شاشة عرض القاعة...</p>
+    </div>
+  )
+});
+
+export default AuditoriumProjector;
