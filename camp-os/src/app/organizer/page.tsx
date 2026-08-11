@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useCampContext, useTeams } from '@/lib/services/CampContext';
 import { useCampEngine, SESSION_PRESETS } from '@/lib/services/campEngine';
-import { Session, Team, TeamSubmission } from '@/lib/services/types';
+import { Session, Team } from '@/lib/services/types';
 import styles from './organizer.module.css';
 
 type ActiveTab = 'camp_control' | 'people_teams';
@@ -34,6 +34,17 @@ export default function OrganizerHub() {
   const [showAddOrganizerModal, setShowAddOrganizerModal] = useState(false);
   const [newOrganizerNameInput, setNewOrganizerNameInput] = useState('');
 
+  // Confirmation Modal State (Destructive Action Guard)
+  const [confirmAction, setConfirmAction] = useState<{
+    title: string;
+    message: string;
+    action: () => Promise<void>;
+  } | null>(null);
+
+  // Check-in note modal
+  const [checkInTeam, setCheckInTeam] = useState<Team | null>(null);
+  const [checkInNoteInput, setCheckInNoteInput] = useState('');
+
   if (!isLoaded || !globalState) {
     return (
       <div className={styles.container} style={{ padding: '4rem 1.5rem', textAlign: 'center' }}>
@@ -55,10 +66,16 @@ export default function OrganizerHub() {
     await provider.adjustTimer(deltaMins);
   };
 
-  const handleActivateNext = async () => {
-    if (nextSession) {
-      await provider.activateSession(nextSession.id);
-    }
+  const handleActivateNextWithGuard = async () => {
+    if (!nextSession) return;
+    setConfirmAction({
+      title: 'الانتقال للجلسة التالية',
+      message: `هل أنت تأكد من إنهاء الجلسة الحالية والانتقال للجلسة التالية: "${nextSession.title}"؟`,
+      action: async () => {
+        await provider.activateSession(nextSession.id);
+        setConfirmAction(null);
+      }
+    });
   };
 
   const handleBroadcastAnnouncement = async (e: React.FormEvent) => {
@@ -125,6 +142,23 @@ export default function OrganizerHub() {
     await provider.resolveHelp(teamId, helpId, currentUser?.name || 'المنظّم');
   };
 
+  const handleSendCheckIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!checkInTeam || !checkInNoteInput.trim()) return;
+    await provider.updateTeam(checkInTeam.id, {
+      submissions: {
+        ...(checkInTeam.submissions || {}),
+        organizerNote: checkInNoteInput.trim() as any
+      }
+    });
+    setCheckInTeam(null);
+    setCheckInNoteInput('');
+  };
+
+  const handleSelectDemoTeam = async (teamId: string) => {
+    await provider.updateGlobalState({ activeDemoTeamId: teamId });
+  };
+
   return (
     <div className={styles.container}>
       {/* TOP NAVIGATION HEADER & WORKSPACE SWITCHER */}
@@ -132,9 +166,9 @@ export default function OrganizerHub() {
         <div className={styles.navBrand}>
           <div className={styles.liveBadge}>
             <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--color-green)' }}></span>
-            <span>LIVE OPERATIONAL HUB</span>
+            <span>LIVE OPERATIONAL COMMAND</span>
           </div>
-          <span style={{ fontSize: '1.1rem', fontWeight: 900 }}>FROM ZERO TO MVP · CAMP OS</span>
+          <span style={{ fontSize: '1.1rem', fontWeight: 900 }}>FROM ZERO TO MVP · CAMP OS 7.0</span>
         </div>
 
         <div className={styles.workspaceTabs}>
@@ -163,7 +197,7 @@ export default function OrganizerHub() {
                 DAY 0{activeSession?.day || 1} · SESSION 0{activeSession?.order || 1}
               </span>
               <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                {activeSession?.type?.toUpperCase()}
+                TYPE: {activeSession?.type?.toUpperCase()}
               </span>
             </div>
 
@@ -187,7 +221,7 @@ export default function OrganizerHub() {
               </div>
             </div>
 
-            {/* CONTROL BUTTONS */}
+            {/* CONTROL BUTTONS WITH SAFETY GUARDS */}
             <div className={styles.controlButtonsRow}>
               <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={handleTogglePause}>
                 {isTimerPaused ? '▶️ استئناف' : '⏸️ إيقاف مؤقت'}
@@ -199,7 +233,7 @@ export default function OrganizerHub() {
                 +10 دقائق
               </button>
               {nextSession && (
-                <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={handleActivateNext}>
+                <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={handleActivateNextWithGuard}>
                   الجلسة التالية: {nextSession.title} ←
                 </button>
               )}
@@ -207,6 +241,29 @@ export default function OrganizerHub() {
                 📢 بث إعلان
               </button>
             </div>
+
+            {/* DEMO DAY ACTIVE TEAM SELECTOR */}
+            {activeSession?.type === 'demo' && (
+              <div style={{ marginTop: '1.5rem', padding: '1.25rem', background: '#EFF6FF', border: '2px solid var(--color-blue)' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.75rem' }}>🏆 إدارة عروض Demo Day (الفريق المعروض):</h3>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {teams.map(t => (
+                    <button
+                      key={t.id}
+                      className={styles.actionBtn}
+                      style={{
+                        background: globalState.activeDemoTeamId === t.id ? 'var(--color-blue)' : 'var(--bg-surface)',
+                        color: globalState.activeDemoTeamId === t.id ? '#fff' : 'var(--text-main)',
+                        fontSize: '0.85rem'
+                      }}
+                      onClick={() => handleSelectDemoTeam(t.id)}
+                    >
+                      {globalState.activeDemoTeamId === t.id ? '▶️ ' : ''}{t.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* RIGHT: TIMELINE & QUICK ADD */}
@@ -230,7 +287,16 @@ export default function OrganizerHub() {
                     <div 
                       key={s.id} 
                       className={`${styles.sessionItem} ${isActive ? styles.sessionItemActive : ''}`}
-                      onClick={() => provider.activateSession(s.id)}
+                      onClick={() => {
+                        setConfirmAction({
+                          title: 'تفعيل الجلسة',
+                          message: `هل أنت تأكد من الانتقال المباشر وتفعيل: "${s.title}"؟`,
+                          action: async () => {
+                            await provider.activateSession(s.id);
+                            setConfirmAction(null);
+                          }
+                        });
+                      }}
                     >
                       <div>
                         <div style={{ fontSize: '0.95rem', fontWeight: 800 }}>
@@ -283,7 +349,7 @@ export default function OrganizerHub() {
       {/* WORKSPACE 2: PEOPLE & TEAMS */}
       {activeTab === 'people_teams' && (
         <div className={styles.peopleWorkspace}>
-          {/* NEEDS ATTENTION QUEUE (FIRST VISIBLE THING) */}
+          {/* NEEDS ATTENTION QUEUE */}
           <section className={styles.needsAttentionSection}>
             <div className={styles.needsAttentionHeading}>
               <span>⚠️ يحتاج تدخل ورعاية المنظم (NEEDS ATTENTION)</span>
@@ -381,9 +447,14 @@ export default function OrganizerHub() {
                     الأعضاء ({t.members?.length || 0}): {t.members?.map(m => m.name).join(', ') || 'لا يوجد أعضاء بعد'}
                   </div>
 
-                  <button className={styles.actionBtn} onClick={() => setSelectedTeam(t)} style={{ marginTop: '0.5rem' }}>
-                    إدارة الفريق والمراجعة ←
-                  </button>
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <button className={styles.actionBtn} onClick={() => { setCheckInTeam(t); setCheckInNoteInput('كيف الأمور؟ هل تحتاجون مساعدة في هذه الخطوة؟'); }} style={{ fontSize: '0.8rem', padding: '0.4rem' }}>
+                      💬 تفقد الفريق
+                    </button>
+                    <button className={styles.actionBtn} onClick={() => setSelectedTeam(t)} style={{ fontSize: '0.8rem', padding: '0.4rem' }}>
+                      إدارة والمراجعة ←
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -391,12 +462,12 @@ export default function OrganizerHub() {
         </div>
       )}
 
-      {/* TEAM DETAIL MODAL */}
+      {/* SUBMISSION REVIEW MODAL WITH PRESET FEEDBACK */}
       {selectedTeam && (
         <div className={styles.modalOverlay} onClick={() => setSelectedTeam(null)}>
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className={styles.sessionTag}>إدارة الفريق</span>
+              <span className={styles.sessionTag}>إدارة الفريق والمراجعة</span>
               <button onClick={() => setSelectedTeam(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', fontWeight: 800, cursor: 'pointer' }}>✕</button>
             </div>
 
@@ -419,7 +490,21 @@ export default function OrganizerHub() {
                       الحالة الحالية: {sub.status}
                     </div>
 
+                    {/* PRESET FEEDBACK BUTTONS */}
                     <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>قوالب ملاحظات سريعة:</span>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                        <button className={styles.actionBtn} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => setReviewFeedbackInput('ممتاز، استمروا بالبناء! ✓')}>
+                          + ممتاز استمروا
+                        </button>
+                        <button className={styles.actionBtn} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => setReviewFeedbackInput('الفكرة واضحة، نحتاج فقط توضيح الفئة المستهدفة الأولى.')}>
+                          + توضيح المستهدف
+                        </button>
+                        <button className={styles.actionBtn} style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }} onClick={() => setReviewFeedbackInput('المخرج جيد، لكن نحتاج رابط التجربة الحي Vercel.')}>
+                          + رابط التجربة الحي
+                        </button>
+                      </div>
+
                       <textarea
                         className={styles.inputField}
                         rows={2}
@@ -444,6 +529,45 @@ export default function OrganizerHub() {
         </div>
       )}
 
+      {/* CONFIRMATION SAFETY GUARD MODAL */}
+      {confirmAction && (
+        <div className={styles.modalOverlay} onClick={() => setConfirmAction(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 450 }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 900, color: 'var(--color-red)' }}>⚠️ {confirmAction.title}</h2>
+            <p style={{ margin: '1rem 0', lineHeight: 1.4 }}>{confirmAction.message}</p>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button className={styles.actionBtn} onClick={() => setConfirmAction(null)} style={{ width: '40%' }}>
+                إلغاء
+              </button>
+              <button className={`${styles.actionBtn} ${styles.primaryActionBtn}`} onClick={confirmAction.action} style={{ width: '60%', background: 'var(--color-red)' }}>
+                تأكيد التنفيذ ←
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CHECK-IN NOTE MODAL */}
+      {checkInTeam && (
+        <div className={styles.modalOverlay} onClick={() => setCheckInTeam(null)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 900 }}>💬 تفقد فريق {checkInTeam.name}</h2>
+            <form onSubmit={handleSendCheckIn} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '1rem' }}>
+              <textarea
+                className={styles.inputField}
+                rows={3}
+                value={checkInNoteInput}
+                onChange={(e) => setCheckInNoteInput(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button type="button" className={styles.actionBtn} onClick={() => setCheckInTeam(null)} style={{ width: '35%' }}>إلغاء</button>
+                <button type="submit" className={`${styles.actionBtn} ${styles.primaryActionBtn}`} style={{ width: '65%' }}>إرسال التنبيه للفريق ←</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* CREATE TEAM MODAL */}
       {showCreateTeamModal && (
         <div className={styles.modalOverlay} onClick={() => setShowCreateTeamModal(false)}>
@@ -455,7 +579,7 @@ export default function OrganizerHub() {
                 <input
                   type="text"
                   className={styles.inputField}
-                  placeholder="مثال: Team Nova"
+                  placeholder="مثال: Pixel Founders"
                   value={newTeamNameInput}
                   onChange={(e) => setNewTeamNameInput(e.target.value)}
                   autoFocus

@@ -88,6 +88,7 @@ export default function SharedTeamWorkspace() {
   }
 
   const activeSubmission = team.submissions?.[activeSession?.id || ''];
+  const organizerCheckInNote = (team.submissions as any)?.organizerNote;
   const activeHelp = team.helpRequests?.find(h => h.status !== 'resolved');
 
   const copyTeamCode = () => {
@@ -220,6 +221,14 @@ export default function SharedTeamWorkspace() {
           </div>
         )}
 
+        {/* ORGANIZER CHECK-IN NOTE */}
+        {organizerCheckInNote && (
+          <div style={{ padding: '1rem', background: '#EFF6FF', border: '2px solid var(--color-blue)', marginBottom: '1.25rem' }}>
+            <span style={{ fontWeight: 800, color: 'var(--color-blue)', fontSize: '0.9rem' }}>📩 رسالة وتفقد من المنظم:</span>
+            <p style={{ marginTop: '0.25rem', fontWeight: 600, color: 'var(--text-main)' }}>"{organizerCheckInNote}"</p>
+          </div>
+        )}
+
         {/* ORGANIZER FEEDBACK / NOTE (IF REQUESTED CHANGES) */}
         {activeSubmission && activeSubmission.status === 'changes_requested' && (
           <div className={styles.organizerNoteCard}>
@@ -229,6 +238,13 @@ export default function SharedTeamWorkspace() {
             <p className={styles.organizerNoteContent}>
               "{activeSubmission.organizerFeedback || 'يرجى مراجعة وتحديث المخرجات وإعادة التسليم للمراجعة.'}"
             </p>
+          </div>
+        )}
+
+        {/* DONE WHEN EXPECTED OUTCOME */}
+        {activeSession?.mission?.expectedOutcome && (
+          <div style={{ padding: '0.85rem 1.25rem', background: '#DCFCE7', border: '1.5px solid var(--color-green)', marginBottom: '1.25rem', fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-green)' }}>
+            ✓ متى نعتبر أنجزنا؟ (DONE WHEN): {activeSession.mission.expectedOutcome}
           </div>
         )}
 
