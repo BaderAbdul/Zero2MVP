@@ -10,53 +10,27 @@ export type CampPhase =
   | 'demo_day_presenting'
   | 'demo_day_judging'
   | 'demo_day_reveal'
-  | 'finished'
-  | 'custom';
+  | 'finished';
 
 export type CampStatus = 'setup' | 'waiting_room' | 'live';
 
 export type TimerMode = 'countdown' | 'countup' | 'hidden';
 
-export interface CustomTask {
-  id: string;
-  title: string;
-  description?: string;
-  required: boolean;
-}
-
-export interface CustomStage {
-  id: string;
-  title: string;
-  description?: string;
-  order: number;
-  timerMode: TimerMode;
-  durationMs?: number;
-  tasks: CustomTask[];
-  allowSubmission: boolean;
-}
-
 export interface GlobalState {
   campStatus: CampStatus;
   currentPhase: CampPhase;
-  
-  // Legacy / Hybrid Fields
   activeDemoTeamId: string | null;
   nextDemoTeamId: string | null;
   announcement: string | null;
-  revealScores: boolean;
-  preBreakPhase?: CampPhase;
-
-  // UX 4.0 Advanced Timer Fields
-  timerMode?: TimerMode;
   timerEndTime: number | null;
   timerStartTime?: number | null;
-  isTimerPaused?: boolean;
-  timerPausedAt?: number;
-  timerAccumulatedMs?: number;
-
-  // UX 4.0 Custom Stages Mode
-  customStages?: CustomStage[];
-  currentStageId?: string;
+  timerMode?: TimerMode;
+  timerRoles?: UserRole[];
+  customStageTitle?: string;
+  customStageDesc?: string;
+  customStageDuration?: number;
+  revealScores: boolean;
+  preBreakPhase?: CampPhase;
 }
 
 export type TeamStatus = 'green' | 'yellow' | 'red';

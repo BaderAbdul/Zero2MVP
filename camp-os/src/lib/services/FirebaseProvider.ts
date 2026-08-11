@@ -123,7 +123,7 @@ export class FirebaseProvider implements DataProvider {
       const currentPhase = currentState.currentPhase;
       const newPhase = updates.currentPhase;
       
-      if (currentPhase !== newPhase && currentPhase !== 'break' && currentPhase !== 'custom' && newPhase !== 'custom') {
+      if (currentPhase !== newPhase && currentPhase !== 'break') {
         const allowed = ALLOWED_TRANSITIONS[currentPhase] || [];
         if (!allowed.includes(newPhase)) {
           throw new Error(`Invalid phase transition: ${currentPhase} -> ${newPhase}`);

@@ -8,17 +8,17 @@ import styles from './participant.module.css';
 
 export default function ParticipantDashboard() {
   const { provider, currentUser } = useCampContext();
-  const { isLoaded, globalState, currentRoSPhase, isBreak, currentMission, activeCustomStage, userTeam: team, activeDemoTeam } = useCampEngine();
+  const { isLoaded, globalState, currentRoSPhase, isBreak, currentMission, userTeam: team, activeDemoTeam } = useCampEngine();
 
   const [joinCodeInput, setJoinCodeInput] = React.useState('');
   const [joinError, setJoinError] = React.useState('');
   const [isJoining, setIsJoining] = React.useState(false);
 
   if (!currentUser || currentUser.role !== 'participant') {
-    return <div className={styles.error}>UNAUTHORIZED. LOGIN AS PARTICIPANT.</div>;
+    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS PARTICIPANT.</div>;
   }
 
-  if (!isLoaded || !globalState) return <div className={styles.loading}>INITIALIZING TERMINAL...</div>;
+  if (!isLoaded || !globalState) return <div className={styles.loading}>INITIALIZING ASSIGNMENTS...</div>;
 
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +27,7 @@ export default function ParticipantDashboard() {
     setJoinError('');
     try {
       await provider.joinTeam(joinCodeInput.trim().toUpperCase(), currentUser.id);
+      // Success, context will automatically update `teamId` and re-render.
     } catch (err: any) {
       setJoinError(err.message || "فشل الانضمام إلى الفريق.");
       setIsJoining(false);
@@ -37,8 +38,8 @@ export default function ParticipantDashboard() {
     return (
       <div className={styles.waitingRoom}>
         <div className={styles.waitingCard}>
-          <h1>TEAM ACCESS</h1>
-          <p className={styles.missionDesc} style={{margin: '1rem 0'}}>الرجاء إدخال رمز الانضمام المقدم من المنظّم.</p>
+          <h1>Team Access</h1>
+          <p className={styles.missionDesc}>الرجاء إدخال رمز الانضمام المقدم من المنظّم.</p>
           <form onSubmit={handleJoinTeam} className={styles.joinForm}>
             <input 
               type="text" 
@@ -73,18 +74,15 @@ export default function ParticipantDashboard() {
   };
 
   const renderMissionChecklist = () => {
-    let tasksToRender = activeCustomStage ? activeCustomStage.tasks : currentMission?.tasks;
-    
-    if (!tasksToRender || tasksToRender.length === 0) return null;
+    if (!currentMission) return null;
 
-    const completedCount = team.completedTaskIds?.filter(id => tasksToRender!.find((t: any) => t.id === id)).length || 0;
-    const totalCount = tasksToRender.length;
+    const completedCount = team.completedTaskIds?.filter(id => currentMission.tasks.find(t => t.id === id)).length || 0;
+    const totalCount = currentMission.tasks.length;
     const allCompleted = totalCount > 0 && completedCount === totalCount;
 
     return (
       <div className={styles.missionChecklist}>
-        <div className={styles.tasksHeader}>مهامك (TASKS)</div>
-        {tasksToRender.map((task: any) => {
+        {currentMission.tasks.map(task => {
           const isCompleted = team.completedTaskIds?.includes(task.id);
           return (
             <label key={task.id} className={`${styles.taskItem} ${isCompleted ? styles.taskCompleted : ''}`}>
@@ -94,7 +92,7 @@ export default function ParticipantDashboard() {
                 onChange={() => handleTaskSubmit(task.id)}
                 disabled={isCompleted}
               />
-              <span>{task.title || (task as any).description}</span>
+              <span>{task.description}</span>
             </label>
           );
         })}
@@ -164,11 +162,9 @@ export default function ParticipantDashboard() {
     }
 
     // Dynamic Mission Stage (from Organizer Command Center or predefined ROS)
-    const activeStageTitle = activeCustomStage ? activeCustomStage.title : (currentMission ? currentMission.title : currentRoSPhase.title);
-    const activeStageDesc = activeCustomStage ? activeCustomStage.description : (currentMission ? currentMission.description : currentRoSPhase.description);
+    const activeStageTitle = globalState.customStageTitle || (currentMission ? currentMission.title : currentRoSPhase.title);
+    const activeStageDesc = globalState.customStageDesc || (currentMission ? currentMission.description : currentRoSPhase.description);
     
-    const showSubmitCheckpoint = activeCustomStage?.allowSubmission ?? true;
-
     return (
       <div className={styles.missionActive}>
         <p className={styles.subLabel}>CURRENT ASSIGNMENT</p>
@@ -183,12 +179,12 @@ export default function ParticipantDashboard() {
             disabled={team.healthStatus === 'red'}
             className={styles.secondaryBtnWarning}
           >
-            {team.healthStatus === 'red' ? '🚨 REQUEST SENT' : '[ SOS - REQUEST HELP ]'}
+            {team.healthStatus === 'red' ? '🚨 REQUEST SENT' : 'SOS - REQUEST HELP'}
           </button>
           
-          {(team.checkpointStatus === 'idle' && showSubmitCheckpoint) && (
+          {team.checkpointStatus === 'idle' && (
             <button onClick={handleRequestCheckpoint} className={styles.secondaryBtn}>
-              [ إرسال المهمة للمراجعة ]
+              SUBMIT CHECKPOINT
             </button>
           )}
         </div>

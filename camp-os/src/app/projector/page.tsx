@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTeams, useDemoScores } from '@/lib/services/CampContext';
 import { useCampEngine } from '@/lib/services/campEngine';
@@ -13,31 +13,22 @@ const variants = {
 };
 
 export default function ProjectorScreen() {
-  const { isLoaded, globalState, currentRoSPhase, isBreak, timeRemainingSeconds, timeElapsedSeconds, timerMode, isTimerPaused, activeCustomStage } = useCampEngine();
+  const { isLoaded, globalState, currentRoSPhase, isBreak, timeRemainingSeconds, isTimerRunning } = useCampEngine();
   const teams = useTeams();
 
   // Local seconds state for smooth live countdown on projector
-  const [displaySeconds, setDisplaySeconds] = useState(0);
+  const [displaySeconds, setDisplaySeconds] = React.useState(timeRemainingSeconds || 0);
 
-  useEffect(() => {
-    // Sync with engine
-    if (timerMode === 'countup') {
-      setDisplaySeconds(timeElapsedSeconds);
-    } else {
-      setDisplaySeconds(timeRemainingSeconds || 0);
-    }
-    
-    if (isTimerPaused || timerMode === 'hidden') return;
+  React.useEffect(() => {
+    setDisplaySeconds(timeRemainingSeconds || 0);
+    if (!isTimerRunning) return;
     
     const interval = setInterval(() => {
-      setDisplaySeconds((prev) => {
-        if (timerMode === 'countup') return prev + 1;
-        return prev <= 0 ? 0 : prev - 1;
-      });
+      setDisplaySeconds((prev) => (prev <= 0 ? 0 : prev - 1));
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timeRemainingSeconds, timeElapsedSeconds, isTimerPaused, timerMode]);
+  }, [timeRemainingSeconds, isTimerRunning]);
 
   const activeTeamScores = useDemoScores(globalState?.activeDemoTeamId || undefined);
   const derivedTotalScore = activeTeamScores.reduce((sum, s) => sum + (s.totalScore || 0), 0);
@@ -46,11 +37,10 @@ export default function ProjectorScreen() {
   if (!isLoaded || !globalState) return <div className={styles.projectorContainer}><div className={styles.loading}>INITIALIZING DISPLAY...</div></div>;
 
   const renderTimer = () => {
-    if (timerMode === 'hidden' && !isBreak) return null;
-    if (!globalState.timerStartTime && !globalState.timerEndTime && !isBreak) return null;
+    if (!isTimerRunning && !isBreak) return null;
     
-    const m = Math.floor(Math.max(0, displaySeconds) / 60);
-    const s = Math.max(0, displaySeconds) % 60;
+    const m = Math.floor(displaySeconds / 60);
+    const s = displaySeconds % 60;
     const formatted = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     
     if (isBreak) {
@@ -62,7 +52,7 @@ export default function ProjectorScreen() {
     }
     
     return (
-      <div className={`${styles.projectorTimer} ${(timerMode === 'countdown' && displaySeconds < 60) ? styles.timerWarning : ''} ${isTimerPaused ? styles.timerPaused : ''}`}>
+      <div className={`${styles.projectorTimer} ${displaySeconds < 60 ? styles.timerWarning : ''}`}>
         <span className={styles.timerValue}>{formatted}</span>
       </div>
     );
@@ -115,18 +105,64 @@ export default function ProjectorScreen() {
       );
     }
 
-    const displayTitle = activeCustomStage ? activeCustomStage.title : currentRoSPhase.title;
+    // Custom Phase logic fallback
+    const displayTitle = globalState.customStageTitle || currentRoSPhase.title;
 
     switch (currentRoSPhase.id) {
       case 'setup':
       case 'welcome':
         return (
           <motion.div key="welcome" className={styles.centerBox} {...variants} transition={{ duration: 0.8 }}>
-            <h1 className={styles.glitchText}>CAMP OS</h1>
-            <h2 className={styles.subtitle}>LIVE COMMAND SYSTEM INITIALIZED</h2>
+            <h1 className={styles.glitchText}>FROM ZERO TO MVP</h1>
+            <h2 className={styles.subtitle}>INITIALIZING...</h2>
             {globalState.announcement && (
               <div className={styles.announcementBox}>{globalState.announcement}</div>
             )}
+          </motion.div>
+        );
+
+      case 'ideation':
+      case 'build':
+      case 'custom':
+        return (
+          <motion.div key="build" className={styles.buildScreen} {...variants}>
+            <div className={styles.buildHeader}>
+              <div className={styles.headerTitleRow}>
+                <h1 className={styles.phaseTitle}>
+                  <span className={styles.liveDot}></span>
+                  {displayTitle}
+                </h1>
+                {renderTimer()}
+              </div>
+              {globalState.announcement && (
+                <div className={styles.announcementBoxAlt}>{globalState.announcement}</div>
+              )}
+            </div>
+            
+            <div className={styles.podiumContainer}>
+              {teams.sort((a, b) => b.progressPercentage - a.progressPercentage).map((team, idx) => (
+                <motion.div 
+                  key={team.id} 
+                  layout
+                  initial={{ opacity: 0, y: 50 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  className={`${styles.podiumRow} ${idx === 0 ? styles.podiumFirst : ''}`}
+                >
+                  <div className={styles.podiumRank}>#{idx + 1}</div>
+                  <div className={styles.podiumName}>{team.name}</div>
+                  <div className={styles.podiumBarContainer}>
+                    <motion.div 
+                      className={styles.podiumBarFill}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${team.progressPercentage}%` }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
+                    />
+                  </div>
+                  <div className={styles.podiumScore}>{team.progressPercentage}%</div>
+                </motion.div>
+              ))}
+            </div>
           </motion.div>
         );
 
@@ -154,11 +190,8 @@ export default function ProjectorScreen() {
           </motion.div>
         );
 
-      case 'ideation':
-      case 'build':
-      case 'custom':
       default:
-        // Main leaderboard / build view
+        // Fallback for custom phases that don't match specific IDs
         return (
           <motion.div key="build" className={styles.buildScreen} {...variants}>
             <div className={styles.buildHeader}>

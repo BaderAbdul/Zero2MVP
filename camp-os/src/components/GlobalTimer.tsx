@@ -38,6 +38,13 @@ export default function GlobalTimer() {
     return () => clearInterval(interval);
   }, [timeRemainingSeconds, timeElapsedSeconds, isTimerRunning, isCountUp]);
 
+  // Check role visibility if specified in globalState
+  const allowedRoles = globalState?.timerRoles;
+  const userRole = currentUser?.role || 'participant';
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    return null;
+  }
+
   if (!isLoaded || isHidden || (!isTimerRunning && !isBreak && displaySeconds === 0 && !isCountUp)) return null;
 
   const currentSeconds = displaySeconds || 0;

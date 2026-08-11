@@ -2,10 +2,9 @@
 
 import React from 'react';
 import { useCampContext, useTeams, useTeamInterventions } from '@/lib/services/CampContext';
-import { useCampEngine } from '@/lib/services/campEngine';
 import styles from './mentor.module.css';
 
-const TeamCard = ({ team, isUrgent, activeStageName }: { team: any, isUrgent: boolean, activeStageName: string }) => {
+const TeamCard = ({ team, isUrgent }: { team: any, isUrgent: boolean }) => {
   const { provider, currentUser } = useCampContext();
   const interventions = useTeamInterventions(team.id) || [];
   
@@ -34,7 +33,7 @@ const TeamCard = ({ team, isUrgent, activeStageName }: { team: any, isUrgent: bo
       <div className={styles.cardHeader}>
         <div className={styles.headerLeftCard}>
           <h2>{team.name}</h2>
-          <span className={styles.stageBadge}>{activeStageName || team.currentStage}</span>
+          <span className={styles.stageBadge}>{team.currentStage}</span>
         </div>
         <div className={styles.healthBadge}>
           {team.healthStatus === 'green' ? 'OK' : team.healthStatus === 'yellow' ? 'WARN' : 'CRIT'}
@@ -94,7 +93,7 @@ const TeamCard = ({ team, isUrgent, activeStageName }: { team: any, isUrgent: bo
         )}
 
         {othersClaimedInterventions.length > 0 && (
-          <div className={styles.interventionsBox} style={{borderColor: 'var(--border-glass-strong)'}}>
+          <div className={styles.interventionsBox} style={{borderColor: 'var(--border-strong)'}}>
             <p className={styles.interventionsLabel} style={{color: 'var(--text-muted)'}}>
               [-] OTHER MENTOR ASSISTING
             </p>
@@ -113,17 +112,14 @@ const TeamCard = ({ team, isUrgent, activeStageName }: { team: any, isUrgent: bo
 
 export default function MentorDashboard() {
   const { currentUser } = useCampContext();
-  const { activeCustomStage, globalState } = useCampEngine();
   const teams = useTeams();
 
   if (!currentUser || currentUser.role !== 'mentor') {
-    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS MENTOR.</div>;
+    return <div className={styles.error}>UNAUTHORIZED. PLEASE LOGIN AS MENTOR VIA <a href="/login">/login</a>.</div>;
   }
 
   const actionRequiredTeams = teams.filter(t => t.checkpointStatus === 'pending' || t.healthStatus === 'red' || t.healthStatus === 'yellow');
   const monitoringTeams = teams.filter(t => t.checkpointStatus !== 'pending' && t.healthStatus === 'green');
-
-  const activeStageName = activeCustomStage?.title || 'STANDBY';
 
   return (
     <div className={styles.container}>
@@ -138,11 +134,11 @@ export default function MentorDashboard() {
         {/* LANE 1: ACTION REQUIRED */}
         <section className={styles.lane}>
           <h2 className={styles.laneTitleUrgent}>
-            [!] ACTION REQUIRED <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
+            [!] REQUIRES INTERVENTION <span className={styles.countBadge}>{actionRequiredTeams.length}</span>
           </h2>
           <div className={styles.urgentGrid}>
             {actionRequiredTeams.length > 0 ? (
-              actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} activeStageName={activeStageName} />)
+              actionRequiredTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={true} />)
             ) : (
               <div className={styles.emptyLane}>[ NO ACTION REQUIRED ]</div>
             )}
@@ -155,7 +151,7 @@ export default function MentorDashboard() {
             [-] TELEMETRY (OK) <span className={styles.countBadge}>{monitoringTeams.length}</span>
           </h2>
           <div className={styles.monitoringGrid}>
-            {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} activeStageName={activeStageName} />)}
+            {monitoringTeams.map(t => <TeamCard key={t.id} team={t} isUrgent={false} />)}
           </div>
         </section>
       </div>
